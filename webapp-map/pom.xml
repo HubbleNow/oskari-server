@@ -99,6 +99,11 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>fi.nls.oskari</groupId>
+            <artifactId>peltodata-module</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
