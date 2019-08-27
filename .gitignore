@@ -25,3 +25,4 @@ transport.log
 
 /service-search-nls/nbproject/
 .metadata
+*.orig
