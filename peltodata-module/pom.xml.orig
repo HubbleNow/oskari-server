@@ -118,11 +118,6 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>fi.nls.oskari</groupId>
-            <artifactId>servlet-map</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
@@ -133,11 +128,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+<<<<<<< HEAD
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>4.5.1</version>
-        </dependency>
-        <dependency>
+=======
             <groupId>fi.nls.oskari</groupId>
             <artifactId>shared-test-resources</artifactId>
             <scope>test</scope>
@@ -152,12 +147,7 @@
             <artifactId>spring-test</artifactId>
             <scope>test</scope>
             <version>3.2.18.RELEASE</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webmvc</artifactId>
-            <scope>provided</scope>
-            <version>3.2.18.RELEASE</version>
+>>>>>>> master
         </dependency>
     </dependencies>
 </project>
