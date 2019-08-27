@@ -118,6 +118,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>fi.nls.oskari</groupId>
+            <artifactId>servlet-map</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
@@ -141,6 +146,12 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
             <scope>test</scope>
+            <version>3.2.18.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <scope>provided</scope>
             <version>3.2.18.RELEASE</version>
         </dependency>
     </dependencies>
