@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="fi.peltodata.domain.FarmfieldMapper">
+
+    <resultMap id="FarmfieldData" type="Farmfield">
+        <result property="id" column="id" />
+        <result property="description" column="description" />
+        <result property="userId" column="userId" />
+    </resultMap>
+    <select id="findFarmField" resultType="map" parameterType="map">
+        select pf.* from peltodata_field pf where pf.id = #{farmfieldId}
+    </select>
+
+    <select id="findAllFarmFields" resultType="map">
+        select * from peltodata_field
+    </select>
+
+    <select id="findAllFarmFieldsByUserId" resultType="map" parameterType="map">
+        select * from peltodata_field where user_id = #{userId}
+    </select>
+
+    <insert id="insertFarmField" parameterType="Farmfield" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO peltodata_field (
+            description,
+            user_id
+        )
+        VALUES (
+            #{description},
+            #{userId}
+        )
+    </insert>
+
+    <update id="update" parameterType="Farmfield">
+        UPDATE peltodata_field set
+            description = #{description},
+            user_id = #{userId}
+        WHERE id = #{id}
+    </update>
+
+    <insert id="insertFarmFieldMapLayer" parameterType="map">
+        INSERT INTO peltodata_field_layer (
+            field_id,
+            layer_id
+        )
+        VALUES (
+            #{farmfieldId},
+            #{maplayerId}
+        )
+    </insert>
+
+    <delete id="delete" parameterType="Long">
+        delete from peltodata_field where id = #{id}
+    </delete>
+
+    <select id="findFarmLayers" parameterType="Long" resultType="list">
+        select layer_id from peltodata_field_layer where field_id = #{farmfieldId}
+    </select>
+
+</mapper>

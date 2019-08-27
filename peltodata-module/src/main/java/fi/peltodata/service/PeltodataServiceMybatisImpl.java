@@ -15,6 +15,7 @@ import fi.nls.oskari.service.OskariComponent;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.UserService;
 import fi.peltodata.domain.Farmfield;
+import fi.peltodata.domain.FarmfieldMapper;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
@@ -25,6 +26,7 @@ import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 
 import javax.sql.DataSource;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Oskari
 public class PeltodataServiceMybatisImpl extends OskariComponent implements PeltodataService  {
@@ -37,7 +39,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     private static OskariLayerService oskariLayerService = new OskariLayerServiceMybatisImpl();
     private UserService userService;
 
-    public PeltodataServiceMybatisImpl() throws ServiceException {
+    protected PeltodataServiceMybatisImpl(UserService userService) throws ServiceException {
         final DatasourceHelper helper = DatasourceHelper.getInstance();
         DataSource dataSource = helper.getDataSource();
         if (dataSource == null) {
@@ -47,7 +49,11 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
             LOG.error("Couldn't get datasource for oskari layer service");
         }
         factory = initializeMyBatis(dataSource);
-        userService = UserService.getInstance();
+        this.userService = userService;
+    }
+
+    public PeltodataServiceMybatisImpl() throws ServiceException {
+        this(UserService.getInstance());
     }
 
     private SqlSessionFactory initializeMyBatis(final DataSource dataSource) {
@@ -63,7 +69,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         return new SqlSessionFactoryBuilder().build(configuration);
     }
 
-    private Farmfield mapData(Map<String, Object> data) {
+    private Farmfield mapData(Map<String, Object> data, SqlSession session) {
         if(data == null) {
             return null;
         }
@@ -74,23 +80,30 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
             data = caseInsensitiveData;
         }
         final Farmfield farmfield = new Farmfield();
-        farmfield.setId((Long) data.get("id"));
+        final Long farmfieldId = (Long) data.get("id");
+        farmfield.setId(farmfieldId);
         farmfield.setDescription((String) data.get("description"));
         try {
-            User user = userService.getUser((int) data.get("user_id"));
+            int userIdInt = (int) data.get("user_id");
+            Long userId = new Long(userIdInt);
+            User user = userService.getUser(userId);
+            farmfield.setUserId(userId);
             farmfield.setUser(user);
         } catch (ServiceException e) {
             LOG.error("Could not find user with id {}", new Object[] { data.get("user_id") });
         }
-        // todo: how to fetch more simpler all fields
-        // using OskariLayer layer = oskariLayerService.find((int) data.get("layer_id"));
+        final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);
+        List<Integer> layerIds = mapper.findFarmLayers(farmfieldId);
+        //not testable now on, using hsqldb (due to incompatibility in flyway scripts)
+        List<OskariLayer> farmfieldLayers = oskariLayerService.findByIdList(layerIds);
+        farmfield.setLayers(farmfieldLayers.stream().collect(Collectors.toSet()));
         return farmfield;
     }
 
-    private List<Farmfield> mapDataList(final List<Map<String,Object>> list) {
+    private List<Farmfield> mapDataList(final List<Map<String,Object>> list, SqlSession session) {
         final List<Farmfield> farmfields = new ArrayList<>();
         for(Map<String, Object> map : list) {
-            final Farmfield farmfield = mapData(map);
+            final Farmfield farmfield = mapData(map, session);
             if(farmfield != null) {
                 farmfields.add(farmfield);
             }
@@ -104,14 +117,12 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         final SqlSession session = factory.openSession();
         try {
             final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);
-            // get as list since we might have a collection layer (get sublayers with same query)
-            final List<Farmfield> farmfields =  mapDataList(mapper.findFarmField(id));
-            if(farmfields != null && !farmfields.isEmpty()) {
-                // should we check for multiples? only should have one since sublayers are mapped in mapDataList()
-                return farmfields.get(0);
-            }
+            Map<String, Object> farmField1 = mapper.findFarmField(id);
+            Farmfield farmField = mapData(farmField1, session);
+            farmField.setUser(userService.getUser(farmField.getUserId()));
+            return farmField;
         } catch (Exception e) {
-            LOG.warn(e, "Exception when getting layer with id: " + id);
+            LOG.warn(e, "Exception when getting farmfield with id: " + id);
         } finally {
             session.close();
         }
@@ -127,8 +138,28 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
             List<Map<String,Object>> result = mapper.findAllFarmFields();
             LOG.debug("Find all fields:", System.currentTimeMillis() - start, "ms");
             start = System.currentTimeMillis();
-            final List<Farmfield> farmfields = mapDataList(result);
+            final List<Farmfield> farmfields = mapDataList(result, session);
             LOG.debug("Parsing all fields:", System.currentTimeMillis() - start, "ms");
+            return farmfields;
+        } catch (Exception e) {
+            LOG.warn(e, "");
+        } finally {
+            session.close();
+        }
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<Farmfield> findAllByUser(long userId) {
+        long start = System.currentTimeMillis();
+        final SqlSession session = factory.openSession();
+        try {
+            final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);
+            List<Map<String,Object>> result = mapper.findAllFarmFieldsByUserId(userId);
+            LOG.debug("Find all fields by user:", System.currentTimeMillis() - start, "ms");
+            start = System.currentTimeMillis();
+            final List<Farmfield> farmfields = mapDataList(result, session);
+            LOG.debug("Parsing all fields by user:", System.currentTimeMillis() - start, "ms");
             return farmfields;
         } catch (Exception e) {
             LOG.warn(e, "");
@@ -156,18 +187,18 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     @Override
     public synchronized long insert(final Farmfield farmfield) {
         LOG.debug("insert new farmfield");
+        long userId = farmfield.getUser().getId();
+        farmfield.setUserId(userId);
         final SqlSession session = factory.openSession();
         try {
             final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);
             mapper.insertFarmField(farmfield);
-            session.commit();
             //id exists now
             Long id = farmfield.getId();
             for (OskariLayer layer : farmfield.getLayers()) {
                 mapper.insertFarmFieldMapLayer(id, layer.getId());
-                session.commit();
             }
-            // or is one or two commits enough ???
+            session.commit();
         } catch (Exception e) {
             throw new RuntimeException("Failed to insert", e);
         } finally {
@@ -189,5 +220,10 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         } finally {
             session.close();
         }
+    }
+
+    @Override
+    public void delete(Farmfield farmfield) {
+        delete(farmfield.getId());
     }
 }

@@ -67,7 +67,6 @@ public class Farmfield implements Comparable<Farmfield> {
         this.userId = userId;
     }
 
-
     @Override
     public int compareTo(Farmfield o) {
         if (this.getId() == null) {

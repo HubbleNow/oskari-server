@@ -21,13 +21,9 @@ CREATE TABLE portti_inspiretheme (
 CREATE TABLE oskari_layergroup
 (
     id serial NOT NULL,
-    locale text DEFAULT '{}'::text,
+    locale text DEFAULT '{}',
     CONSTRAINT oskari_layergroup_pkey PRIMARY KEY (id)
-)
-WITH (
-         OIDS=FALSE
-     );
-
+);
 CREATE TABLE oskari_maplayer
 (
     id serial NOT NULL,
@@ -47,8 +43,8 @@ CREATE TABLE oskari_maplayer
     metadataId character varying(200),
     tile_matrix_set_id character varying(200),
     tile_matrix_set_data text,
-    params text DEFAULT '{}'::text,
-    options text DEFAULT '{}'::text,
+    params text DEFAULT '{}',
+    options text DEFAULT '{}',
     gfi_type character varying(200),
     gfi_xslt text,
     gfi_content text,
@@ -65,21 +61,13 @@ CREATE TABLE oskari_maplayer
     CONSTRAINT oskari_maplayer_groupId_fkey FOREIGN KEY (groupId)
         REFERENCES oskari_layergroup (id) MATCH SIMPLE
         ON UPDATE NO ACTION ON DELETE CASCADE
-)
-WITH (
-         OIDS=FALSE
-     );
+);
 
 CREATE INDEX oskari_maplayer_q1
-    ON oskari_maplayer
-    USING btree
-    (parentId);
-
+    ON oskari_maplayer(parentId);
 
 CREATE INDEX oskari_maplayer_q2
-    ON oskari_maplayer
-    USING btree
-    (groupId);
+    ON oskari_maplayer(groupId);
 
 CREATE TABLE oskari_maplayer_themes
 (
@@ -91,10 +79,7 @@ CREATE TABLE oskari_maplayer_themes
     CONSTRAINT portti_inspiretheme_id_fkey FOREIGN KEY (themeid)
         REFERENCES portti_inspiretheme (id) MATCH SIMPLE
         ON UPDATE NO ACTION ON DELETE CASCADE
-)
-WITH (
-         OIDS=FALSE
-     );
+);
 
 CREATE TABLE oskari_maplayer_metadata
 (
@@ -153,12 +138,12 @@ CREATE TABLE portti_view (
                              application character varying(128) DEFAULT 'servlet',
                              application_dev_prefix character varying(256) DEFAULT '/applications/sample',
                              only_uuid boolean DEFAULT FALSE,
-                             creator bigint DEFAULT (-1),
-                             domain character varying(512) DEFAULT ''::character varying,
-                             lang character varying(2) DEFAULT 'en'::character varying,
+                             creator bigint DEFAULT (1),
+                             domain character varying(512) DEFAULT '',
+                             lang character varying(2) DEFAULT 'en',
                              is_public boolean DEFAULT FALSE,
-                             metadata TEXT DEFAULT '{}'::TEXT,
-                             old_id bigint DEFAULT (-1),
+                             metadata TEXT DEFAULT '{}',
+                             old_id bigint DEFAULT (1),
                              created timestamp DEFAULT CURRENT_TIMESTAMP,
                              CONSTRAINT portti_view_pkey PRIMARY KEY (id),
                              CONSTRAINT portti_view_uuid_key UNIQUE (uuid)
@@ -255,10 +240,7 @@ CREATE TABLE portti_wfs_layer
     job_type character varying(256),
     request_impulse character varying(256),
     CONSTRAINT portti_wfs_layer_pkey PRIMARY KEY (id)
-)
-WITH (
-         OIDS=FALSE
-     );
+);
 
 CREATE TABLE portti_wfs_layer_style
 (
@@ -266,10 +248,7 @@ CREATE TABLE portti_wfs_layer_style
     "name" character varying(256),
     sld_style text,
     CONSTRAINT portti_wfs_layer_style_pkey PRIMARY KEY (id)
-)
-WITH (
-         OIDS=FALSE
-     );
+);
 
 CREATE TABLE portti_wfs_layers_styles
 (
@@ -283,15 +262,10 @@ CREATE TABLE portti_wfs_layers_styles
     CONSTRAINT portti_wfs_layers_styles_wfs_layer_style_fkey FOREIGN KEY (wfs_layer_style_id)
         REFERENCES portti_wfs_layer_style (id) MATCH SIMPLE
         ON UPDATE NO ACTION ON DELETE NO ACTION
-)
-WITH (
-         OIDS=FALSE
-     );
+);
 
 CREATE INDEX fki_portti_wfs_layers_styles_wfs_layer_style_fkey
-    ON portti_wfs_layers_styles
-    USING btree
-    (wfs_layer_style_id);
+    ON portti_wfs_layers_styles(wfs_layer_style_id);
 
 CREATE TABLE portti_wfs_template_model
 (
@@ -303,11 +277,7 @@ CREATE TABLE portti_wfs_template_model
     response_template text,
     parse_config text,
     CONSTRAINT portti_wfs_template_model_pkey PRIMARY KEY (id)
-)
-WITH (
-         OIDS=FALSE
-     );
-
+);
 
 CREATE TABLE oskari_wfs_parser_config
 (
@@ -319,10 +289,7 @@ CREATE TABLE oskari_wfs_parser_config
     parse_config text,
     sld_style text,
     CONSTRAINT oskari_wfs_parser_config_pkey PRIMARY KEY (id)
-)
-WITH (
-         OIDS=FALSE
-     );
+);
 
 -- ----------------------------------------------------------------------------------------;
 -- Thematic maps tables;
@@ -467,3 +434,10 @@ CREATE TABLE oskari_jaas_roles (
                                    role character varying(50) NOT NULL,
                                    CONSTRAINT oskari_jaas_roles_pkey PRIMARY KEY (id)
 );
+
+-- Extra SQLs which are missed from original create-base-tables.sql
+-- (to be run with migrator, which has many scripts which are not hsql compatible)
+-- flyway/oskari/V1_47_5__add_internal_flag_for_maplayers.sql
+ALTER TABLE oskari_maplayer ADD COLUMN internal boolean DEFAULT false NOT NULL;
+-- flyway/oskari/V1_45_6__alter_table_maplayer_rename_groupid_to_dataproviderid.sql
+ALTER TABLE oskari_maplayer RENAME groupid  TO dataprovider_id;
