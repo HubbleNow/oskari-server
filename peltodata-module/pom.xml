@@ -35,7 +35,7 @@
                         <artifactId>commons-dbcp2</artifactId>
                         <version>${commons-dbcp2.version}</version>
                     </dependency>
-                    <dependency>
+                     <dependency>
                         <groupId>hsqldb</groupId>
                         <artifactId>hsqldb</artifactId>
                         <version>1.8.0.7</version>
@@ -126,6 +126,11 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.1</version>
         </dependency>
     </dependencies>
 </project>
