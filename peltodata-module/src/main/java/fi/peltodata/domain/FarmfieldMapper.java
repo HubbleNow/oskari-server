@@ -9,9 +9,9 @@ public interface FarmfieldMapper {
     Map<String,Object> findFarmField(@Param("farmfieldId") long farmfieldId);
     List<Map<String,Object>> findAllFarmFields();
     List<Map<String,Object>> findAllFarmFieldsByUserId(@Param("userId") long userId);
-    long update(final Farmfield farmfield);
+    long updateFarmfield(final Farmfield farmfield);
     void insertFarmField(final Farmfield farmfield);
     void insertFarmFieldMapLayer(@Param("farmfieldId") long farmfieldId, @Param("maplayerId") long maplayerId);
-    long delete(final long farmfieldId);
+    long deleteFarmfield(final long farmfieldId);
     List<Integer> findFarmLayers(@Param("farmfieldId") long farmfieldId);
 }

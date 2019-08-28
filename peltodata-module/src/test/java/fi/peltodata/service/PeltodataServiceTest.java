@@ -57,7 +57,7 @@ public class PeltodataServiceTest {
     @Test
     public void testAdd() throws ServiceException, JSONException {
         Farmfield farmFieldForNewUser = createFarmFieldForNewUser();
-        Farmfield field = peltodataService.find(farmFieldForNewUser.getId());
+        Farmfield field = peltodataService.findFarmfield(farmFieldForNewUser.getId());
         assertEquals(field.getDescription(), farmFieldForNewUser.getDescription());
         assertNotNull(field.getUser().getScreenname());
     }
@@ -65,7 +65,7 @@ public class PeltodataServiceTest {
     @Test
     public void testUpdate() throws ServiceException, JSONException {
         Farmfield farmFieldForNewUser = createFarmFieldForNewUser();
-        Farmfield field = peltodataService.find(farmFieldForNewUser.getId());
+        Farmfield field = peltodataService.findFarmfield(farmFieldForNewUser.getId());
         User user = new User();
         user.setScreenname("new user 123");
         user.addRole(Role.getDefaultUserRole());
@@ -74,8 +74,8 @@ public class PeltodataServiceTest {
         field.setDescription("Test field name");
         field.setUser(newUser);
 
-        peltodataService.update(field);
-        Farmfield updatedField = peltodataService.find(field.getId());
+        peltodataService.updateFarmfield(field);
+        Farmfield updatedField = peltodataService.findFarmfield(field.getId());
         assertEquals("Test field name", updatedField.getDescription());
         assertNotNull(updatedField.getUser().getScreenname());
     }
@@ -95,7 +95,7 @@ public class PeltodataServiceTest {
         farmfield.setDescription("Mäkelänvainio " + i);
         farmfield.setUser(user);
 
-        peltodataService.insert(farmfield);
+        peltodataService.insertFarmfield(farmfield);
 
         //farmfield.addLayer(createLayer(i));
         return farmfield;
@@ -150,7 +150,7 @@ public class PeltodataServiceTest {
         createFarmFieldForNewUser();
         createFarmFieldForNewUser();
         createFarmFieldForNewUser();
-        List<Farmfield> all = peltodataService.findAll();
+        List<Farmfield> all = peltodataService.findAllFarmfields();
         assertTrue(all.size() >= 3);
         assertNotNull(all.get(0).getUser().getScreenname());
     }
@@ -160,7 +160,7 @@ public class PeltodataServiceTest {
         Farmfield farmFieldForNewUser = createFarmFieldForNewUser();
         long userId = farmFieldForNewUser.getUserId();
         createFarmFieldForUser(userId);
-        List<Farmfield> all = peltodataService.findAllByUser(userId);
+        List<Farmfield> all = peltodataService.findAllFarmfieldsByUser(userId);
         assertTrue("" + all.size(), all.size() == 2);
         assertEquals(userId, all.get(1).getUser().getId());
     }
@@ -169,8 +169,8 @@ public class PeltodataServiceTest {
     public void testDelete() throws ServiceException, JSONException {
         Farmfield farmFieldForNewUser = createFarmFieldForNewUser();
         Long id = farmFieldForNewUser.getId();
-        peltodataService.delete(farmFieldForNewUser);
-        Farmfield farmfield = peltodataService.find(id);
+        peltodataService.deleteFarmfield(farmFieldForNewUser);
+        Farmfield farmfield = peltodataService.findFarmfield(id);
         assertNull(farmfield);
     }
 }

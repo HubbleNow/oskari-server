@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class PeltodataConfig {
 
+    public static String PROP_UPLOAD_ROOT_DIR_PATH = "peltodata.upload.root.dir";
+
     @Bean
     public PeltodataService peltodataService() throws ServiceException {
         return new PeltodataServiceMybatisImpl();

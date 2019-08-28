@@ -11,7 +11,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 /**
  * Database based authentication on Oskari
@@ -38,7 +37,8 @@ public class OskariDatabaseSecurityConfig extends WebSecurityConfigurerAdapter {
         http.headers().frameOptions().disable();
 
         // require form parameter "_csrf" OR "X-XSRF-TOKEN" header with token as value or respond with an error message
-        http.csrf().csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
+        //http.csrf().csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
+        http.csrf().disable();
 
         // IMPORTANT! Only antMatch for processing url, otherwise SAML security filters are passed even if both are active
         http.formLogin()
