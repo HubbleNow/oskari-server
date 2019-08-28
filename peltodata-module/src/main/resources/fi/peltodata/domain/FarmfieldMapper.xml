@@ -33,7 +33,7 @@
         )
     </insert>
 
-    <update id="update" parameterType="Farmfield">
+    <update id="updateFarmfield" parameterType="Farmfield">
         UPDATE peltodata_field set
             description = #{description},
             user_id = #{userId}
@@ -51,7 +51,7 @@
         )
     </insert>
 
-    <delete id="delete" parameterType="Long">
+    <delete id="deleteFarmfield" parameterType="Long">
         delete from peltodata_field where id = #{id}
     </delete>
 

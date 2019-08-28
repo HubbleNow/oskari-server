@@ -5,11 +5,12 @@ import fi.peltodata.domain.Farmfield;
 import java.util.List;
 
 public interface PeltodataService {
-    Farmfield find(long id);
-    List<Farmfield> findAll();
-    List<Farmfield> findAllByUser(long userId);
-    long insert(final Farmfield farmfield);
-    void update(final Farmfield farmfield);
-    void delete(final long layerId);
-    void delete(Farmfield farmfield);
+    Farmfield findFarmfield(long id);
+    List<Farmfield> findAllFarmfields();
+    List<Farmfield> findAllFarmfieldsByUser(long userId);
+    boolean farmfieldBelongsToUser(long farmfieldId, long userId);
+    long insertFarmfield(final Farmfield farmfield);
+    void updateFarmfield(final Farmfield farmfield);
+    void deleteFarmfield(final long layerId);
+    void deleteFarmfield(Farmfield farmfield);
 }

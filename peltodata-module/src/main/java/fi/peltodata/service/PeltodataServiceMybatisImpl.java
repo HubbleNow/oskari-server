@@ -112,7 +112,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public Farmfield find(long id) {
+    public Farmfield findFarmfield(long id) {
         LOG.debug("find by id: " + id);
         final SqlSession session = factory.openSession();
         try {
@@ -130,7 +130,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public List<Farmfield> findAll() {
+    public List<Farmfield> findAllFarmfields() {
         long start = System.currentTimeMillis();
         final SqlSession session = factory.openSession();
         try {
@@ -150,7 +150,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public List<Farmfield> findAllByUser(long userId) {
+    public List<Farmfield> findAllFarmfieldsByUser(long userId) {
         long start = System.currentTimeMillis();
         final SqlSession session = factory.openSession();
         try {
@@ -170,12 +170,30 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public void update(final Farmfield farmfield) {
+    public boolean farmfieldBelongsToUser(long farmfieldId, long userId) {
+        LOG.debug("check if farmfield belongs to user");
+        final SqlSession session = factory.openSession();
+        boolean belongsToUser = false;
+        try {
+            final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);
+            Map<String, Object> farmFieldData = mapper.findFarmField(farmfieldId);
+            Farmfield farmfield = mapData(farmFieldData, session);
+            belongsToUser = farmfield.getUserId().equals(userId);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to check", e);
+        } finally {
+            session.close();
+        }
+        return belongsToUser;
+    }
+
+    @Override
+    public void updateFarmfield(final Farmfield farmfield) {
         LOG.debug("update farmfield");
         final SqlSession session = factory.openSession();
         try {
             final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);
-            mapper.update(farmfield);
+            mapper.updateFarmfield(farmfield);
             session.commit();
         } catch (Exception e) {
             throw new RuntimeException("Failed to update", e);
@@ -185,7 +203,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public synchronized long insert(final Farmfield farmfield) {
+    public synchronized long insertFarmfield(final Farmfield farmfield) {
         LOG.debug("insert new farmfield");
         long userId = farmfield.getUser().getId();
         farmfield.setUserId(userId);
@@ -208,12 +226,12 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public void delete(long id) {
+    public void deleteFarmfield(long id) {
         LOG.debug("delete farmfield with id: " + id);
         final SqlSession session = factory.openSession();
         try {
             final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);
-            mapper.delete(id);
+            mapper.deleteFarmfield(id);
             session.commit();
         } catch (Exception e) {
             LOG.error(e, "Couldn't delete with id:", id);
@@ -223,7 +241,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public void delete(Farmfield farmfield) {
-        delete(farmfield.getId());
+    public void deleteFarmfield(Farmfield farmfield) {
+        deleteFarmfield(farmfield.getId());
     }
 }
