@@ -14,8 +14,13 @@ import fi.nls.oskari.mybatis.JSONObjectMybatisTypeHandler;
 import fi.nls.oskari.service.OskariComponent;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.UserService;
+import fi.nls.oskari.util.PropertyUtil;
+import fi.peltodata.config.PeltodataConfig;
 import fi.peltodata.domain.Farmfield;
+import fi.peltodata.domain.FarmfieldFileDataType;
 import fi.peltodata.domain.FarmfieldMapper;
+import fi.peltodata.geoserver.GeoserverClient;
+import fi.peltodata.geoserver.GeoserverException;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
@@ -25,6 +30,14 @@ import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 
 import javax.sql.DataSource;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.Year;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -39,7 +52,9 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     private static OskariLayerService oskariLayerService = new OskariLayerServiceMybatisImpl();
     private UserService userService;
 
-    protected PeltodataServiceMybatisImpl(UserService userService) throws ServiceException {
+    private GeoserverClient geoserverClient;
+
+    protected PeltodataServiceMybatisImpl(UserService userService, GeoserverClient geoserverClient) throws ServiceException {
         final DatasourceHelper helper = DatasourceHelper.getInstance();
         DataSource dataSource = helper.getDataSource();
         if (dataSource == null) {
@@ -50,10 +65,11 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         }
         factory = initializeMyBatis(dataSource);
         this.userService = userService;
+        this.geoserverClient = geoserverClient;
     }
 
     public PeltodataServiceMybatisImpl() throws ServiceException {
-        this(UserService.getInstance());
+        this(UserService.getInstance(), new GeoserverClient());
     }
 
     private SqlSessionFactory initializeMyBatis(final DataSource dataSource) {
@@ -246,4 +262,141 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     public void deleteFarmfield(Farmfield farmfield) {
         deleteFarmfield(farmfield.getId());
     }
+
+    private boolean fileExists(String filePathString) {
+        File f = new File(filePathString);
+        return f.exists() && !f.isDirectory();
+    }
+
+    @Override
+    public boolean fileExists(long farmfieldId, FarmfieldFileDataType dataType, String filename) {
+        String fileTimestamp = filename.split(".")[0];
+        int year = LocalDateTime.parse(fileTimestamp).getYear();
+        String uploadPath = getUploadPath(year, farmfieldId, dataType);
+        String filePathString = uploadPath + filename;
+        return fileExists(filePathString);
+    }
+
+    @Override
+    public List<String> findAllFarmfieldFiles(long farmfieldId) {
+        try {
+            Path farmfieldRootPath = Paths.get(getFarmUploadRootPath(farmfieldId));
+            if (Files.exists(farmfieldRootPath)) {
+                List<String> fileList = Files.walk(Paths.get(getFarmUploadRootPath(farmfieldId)))
+                        .filter(Files::isRegularFile)
+                        .map(a -> getRelativeFarmfieldFilePath(a))
+                        .collect(Collectors.toList());
+                return fileList;
+            }
+        } catch (IOException e) {
+            LOG.error(e, "Error while traversing path: " + getFarmUploadRootPath(farmfieldId));
+        }
+        return Collections.emptyList();
+    }
+
+    private String getFarmUploadRootPath(long farmfieldId) {
+        String uploadRootDir = PropertyUtil.get(PeltodataConfig.PROP_UPLOAD_ROOT_DIR_PATH, "." + File.separator + "geoserver_data");
+        String farmUploadPath = uploadRootDir
+                + File.separator + "farms"
+                + File.separator + farmfieldId
+                + File.separator;
+        return farmUploadPath;
+    }
+
+    private String getUploadPath(int year, long farmfieldId, FarmfieldFileDataType dataType) {
+        String farmUploadPath = getFarmUploadRootPath(farmfieldId);
+        String uploadPath = farmUploadPath
+                + year
+                + File.separator + dataType.getFolderName()
+                + File.separator;
+        return uploadPath;
+    }
+
+    private String getRelativeFarmfieldFilePath(Path fullPath) {
+        return fullPath.getParent().getParent().toFile().getName()
+                + File.separator + fullPath.getParent().toFile().getName()
+                + File.separator + fullPath.getFileName();
+    }
+
+    @Override
+    public String uploadLayerData(long farmfieldId, InputStream inputStream, FarmfieldFileDataType dataType, String filename) {
+        int year = Year.now().getValue();
+        String uploadPath = getUploadPath(year, farmfieldId, dataType);
+        String filePathString = uploadPath + filename;
+        LOG.debug("about upload file : " + filePathString);
+        boolean success = false;
+        Path newFile = Paths.get(filePathString);
+        try {
+            Files.createDirectories(newFile.getParent());
+            Files.copy(inputStream, newFile);
+            success = true;
+        } catch (IOException e) {
+            LOG.error(e, "Error occured while writing file: " + filePathString);
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                }
+            }
+        }
+        return success ? getRelativeFarmfieldFilePath(newFile) : null;
+    }
+
+    @Override
+    public String createFarmfieldLayer(long farmfieldId, String inputFilepath,
+                                       FarmfieldFileDataType inputDataType, FarmfieldFileDataType outputDataType) {
+        String filePath = getFarmUploadRootPath(farmfieldId) + inputFilepath;//need to use relative to geoserver or not?
+        Farmfield farmfield = findFarmfield(farmfieldId);
+        String geoserverLayerName = createFarmfieldGeoserverLayer(farmfield, inputFilepath, outputDataType);
+        //create geoserver datastore + publish + wms layer (srs?)
+        // investigate if web-api or !!!! { fi.nls.oskari.control.layer.SaveLayerHandler.saveLayer } could be used instead (--> decoupling out of this service)
+        // minimum inputs (layername, groups, permissions, srs?, force-proxy ?)
+        //  --- create layer
+        //  --- assign permissions for user 2
+        //add peltodata_field_layer row
+
+        return geoserverLayerName;
+    }
+
+    protected void startAsyncFarmfieldLayerConversionCreation(long farmfieldId, String inputFilepath, FarmfieldFileDataType outputDataType) {
+        // call python (sync??)
+        // add to queue (singleton) which is read by
+    }
+
+    protected String createFarmfieldGeoserverLayer(Farmfield farmfield, String inputFilepath, FarmfieldFileDataType outputDataType) {
+        // check if layer exists ? throw, null or update if exists ??
+        String wmsBaseUrl = geoserverClient.getWMSBaseUrl();
+        String filename = Paths.get(inputFilepath).getFileName().toString();
+        filename = filename.substring(0, filename.indexOf('.'));
+        String description = farmfield.getDescription().toLowerCase();
+        char[] forbidden = new char[] {'ä', 'ö', ' '};
+        char[] converted = new char[] {'a', 'o', '_'};
+        for (int i = 0; i < description.length();  i++) {
+            for(int j = 0; j < forbidden.length;  j++) {
+                if (description.charAt(i) == forbidden[j]) {
+                    description = description.replace(forbidden[j], converted[j]);
+                }
+            }
+        }
+        String maplayerName = description+"_"+filename;// == datastorename ??
+        List<OskariLayer> layers = oskariLayerService.findByUrlAndName(wmsBaseUrl, maplayerName);
+        if (layers != null && layers.size() > 0) {
+            throw new RuntimeException("layer exists");
+        } else {
+            String farmUploadPathRelative = "."
+                    + File.separator + "farms"
+                    + File.separator + farmfield.getId()
+                    + File.separator;
+            //String fullPath = getFarmUploadRootPath(farmfield.getId()) + inputFilepath;
+            String fullPath = farmUploadPathRelative + inputFilepath;
+            try {
+                geoserverClient.saveTiffAsDatastore(maplayerName, Paths.get(fullPath));
+                return maplayerName;
+            } catch (GeoserverException e) {
+                return null;
+            }
+        }
+    }
+
 }
