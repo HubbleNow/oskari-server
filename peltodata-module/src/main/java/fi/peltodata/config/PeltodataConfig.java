@@ -1,5 +1,8 @@
 package fi.peltodata.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import fi.nls.oskari.service.ServiceException;
 import fi.peltodata.service.PeltodataService;
 import fi.peltodata.service.PeltodataServiceMybatisImpl;
@@ -14,5 +17,13 @@ public class PeltodataConfig {
     @Bean
     public PeltodataService peltodataService() throws ServiceException {
         return new PeltodataServiceMybatisImpl();
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
     }
 }

@@ -13,6 +13,7 @@ import fi.nls.oskari.service.UserService;
 import fi.nls.oskari.util.DuplicateException;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.peltodata.domain.Farmfield;
+import net.sf.cglib.core.Local;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,6 +23,7 @@ import org.junit.Test;
 import org.springframework.mock.jndi.SimpleNamingContextBuilder;
 
 import javax.naming.NamingException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Random;
 
@@ -59,6 +61,8 @@ public class PeltodataServiceTest {
         Farmfield farmFieldForNewUser = createFarmFieldForNewUser();
         Farmfield field = peltodataService.findFarmfield(farmFieldForNewUser.getId());
         assertEquals(field.getDescription(), farmFieldForNewUser.getDescription());
+        assertEquals(field.getCropType(), farmFieldForNewUser.getCropType());
+        assertEquals(field.getSowingDate(), farmFieldForNewUser.getSowingDate());
         assertNotNull(field.getUser().getScreenname());
     }
 
@@ -71,12 +75,16 @@ public class PeltodataServiceTest {
         user.addRole(Role.getDefaultUserRole());
         User newUser = UserService.getInstance().createUser(user);
 
-        field.setDescription("Test field name");
+        field.setDescription("Test field name2");
+        field.setCropType("oat");
+        field.setSowingDate(LocalDate.of(2019, 6, 1));
         field.setUser(newUser);
 
         peltodataService.updateFarmfield(field);
         Farmfield updatedField = peltodataService.findFarmfield(field.getId());
-        assertEquals("Test field name", updatedField.getDescription());
+        assertEquals("Test field name2", updatedField.getDescription());
+        assertEquals("oat", updatedField.getCropType());
+        assertEquals(LocalDate.of(2019,6,1), updatedField.getSowingDate());
         assertNotNull(updatedField.getUser().getScreenname());
     }
 
@@ -94,6 +102,8 @@ public class PeltodataServiceTest {
         Farmfield farmfield = new Farmfield();
         farmfield.setDescription("Mäkelänvainio " + i);
         farmfield.setUser(user);
+        farmfield.setCropType("rye");
+        farmfield.setSowingDate(LocalDate.of(2019, 4, 1));
 
         peltodataService.insertFarmfield(farmfield);
 

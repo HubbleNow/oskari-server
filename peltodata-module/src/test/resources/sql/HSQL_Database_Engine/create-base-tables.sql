@@ -156,7 +156,7 @@ CREATE TABLE portti_bundle (
                                name 	    VARCHAR(128)  NOT NULL,
                                config 	    character varying(20000) DEFAULT '{}',
                                state 	    character varying(20000) DEFAULT '{}',
-                               startup 	    character varying(20000) 	  NOT NULL,
+                               startup 	    character varying(20000),
                                CONSTRAINT portti_bundle_pkey PRIMARY KEY (id),
                                CONSTRAINT portti_bundle_name_key UNIQUE (name)
 );
@@ -441,3 +441,6 @@ CREATE TABLE oskari_jaas_roles (
 ALTER TABLE oskari_maplayer ADD COLUMN internal boolean DEFAULT false NOT NULL;
 -- flyway/oskari/V1_45_6__alter_table_maplayer_rename_groupid_to_dataproviderid.sql
 ALTER TABLE oskari_maplayer RENAME groupid  TO dataprovider_id;
+
+INSERT INTO public.portti_view (uuid, id, name, is_default, type, description, page, application, application_dev_prefix) VALUES ('c8d5e61b-799e-475b-a045-8f243b653ff5', 1, 'Default view', true, 'DEFAULT', '', 'index', 'servlet', '/applications/sample');
+INSERT INTO public.portti_view (uuid, id, name, is_default, type, description, page, application, application_dev_prefix) VALUES ('b9d68bfe-a5fc-4f86-88c1-3fe632dd29b7', 2, 'Publisher template', false, 'PUBLISH', '', 'published', 'servlet_published_ol3', '/applications/sample');

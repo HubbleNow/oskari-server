@@ -25,10 +25,14 @@
     <insert id="insertFarmField" parameterType="Farmfield" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         INSERT INTO peltodata_field (
             description,
+            sowing_date,
+            crop_type,
             user_id
         )
         VALUES (
             #{description},
+            #{sowingDate},
+            #{cropType},
             #{userId}
         )
     </insert>
@@ -36,7 +40,9 @@
     <update id="updateFarmfield" parameterType="Farmfield">
         UPDATE peltodata_field set
             description = #{description},
-            user_id = #{userId}
+            user_id = #{userId},
+            sowing_date = #{sowingDate},
+            crop_type = #{cropType}
         WHERE id = #{id}
     </update>
 

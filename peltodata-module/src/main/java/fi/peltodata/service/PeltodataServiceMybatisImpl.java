@@ -36,6 +36,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Date;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.*;
@@ -99,6 +101,9 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         final Long farmfieldId = (Long) data.get("id");
         farmfield.setId(farmfieldId);
         farmfield.setDescription((String) data.get("description"));
+        farmfield.setCropType((String) data.get("crop_type"));
+        Date sqlDate = (Date) data.get("sowing_date");
+        farmfield.setSowingDate(sqlDate.toLocalDate());
         try {
             int userIdInt = (int) data.get("user_id");
             Long userId = new Long(userIdInt);

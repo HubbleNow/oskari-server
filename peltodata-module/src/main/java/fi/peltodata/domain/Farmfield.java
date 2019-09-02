@@ -4,6 +4,8 @@ import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.MaplayerGroup;
 import fi.nls.oskari.domain.map.OskariLayer;
 
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -13,6 +15,8 @@ public class Farmfield implements Comparable<Farmfield> {
     private MaplayerGroup group;
     private User user;
     private Long userId;
+    private String cropType;
+    private LocalDate sowingDate;
     private Set<OskariLayer> layers = new HashSet<>();
 
     public Long getId() {
@@ -65,6 +69,22 @@ public class Farmfield implements Comparable<Farmfield> {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public String getCropType() {
+        return cropType;
+    }
+
+    public void setCropType(String cropType) {
+        this.cropType = cropType;
+    }
+
+    public LocalDate getSowingDate() {
+        return sowingDate;
+    }
+
+    public void setSowingDate(LocalDate sowingDate) {
+        this.sowingDate = sowingDate;
     }
 
     @Override

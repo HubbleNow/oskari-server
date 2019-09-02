@@ -86,6 +86,8 @@ public class PeltodataController {
             } else {
                 farmfield.setUserId(user.getId());
             }
+            farmfield.setSowingDate(requestData.getFarmfieldSowingDate());
+            farmfield.setCropType(requestData.getFarmfieldCropType());
             farmfield.setDescription(requestData.getFarmfieldDescription());
             peltodataService.insertFarmfield(farmfield);
             return new UserFarmfieldResponse(farmfield);
@@ -93,6 +95,8 @@ public class PeltodataController {
             long userId = user.getId();
             Farmfield farmfield = new Farmfield();
             farmfield.setDescription(requestData.getFarmfieldDescription());
+            farmfield.setSowingDate(requestData.getFarmfieldSowingDate());
+            farmfield.setCropType(requestData.getFarmfieldCropType());
             farmfield.setUserId(userId);
             peltodataService.insertFarmfield(farmfield);
             return new UserFarmfieldResponse(farmfield);
@@ -117,6 +121,8 @@ public class PeltodataController {
                 farmfield.setUserId(user.getId());
             }
             farmfield.setDescription(requestData.getFarmfieldDescription());
+            farmfield.setSowingDate(requestData.getFarmfieldSowingDate());
+            farmfield.setCropType(requestData.getFarmfieldCropType());
             peltodataService.updateFarmfield(farmfield);
             return new UserFarmfieldResponse(farmfield);
         } else {
@@ -128,6 +134,8 @@ public class PeltodataController {
             }
             farmfield.setId(farmFieldId);
             farmfield.setDescription(requestData.getFarmfieldDescription());
+            farmfield.setSowingDate(requestData.getFarmfieldSowingDate());
+            farmfield.setCropType(requestData.getFarmfieldCropType());
             farmfield.setUserId(userId);
             peltodataService.updateFarmfield(farmfield);
             return new UserFarmfieldResponse(farmfield);
