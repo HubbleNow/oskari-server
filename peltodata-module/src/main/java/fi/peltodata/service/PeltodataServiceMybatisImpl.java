@@ -205,8 +205,10 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     @Override
     public synchronized long insertFarmfield(final Farmfield farmfield) {
         LOG.debug("insert new farmfield");
-        long userId = farmfield.getUser().getId();
-        farmfield.setUserId(userId);
+        if (farmfield.getUser() != null) {
+            long userId = farmfield.getUser().getId();
+            farmfield.setUserId(userId);
+        }
         final SqlSession session = factory.openSession();
         try {
             final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);

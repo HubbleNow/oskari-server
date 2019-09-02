@@ -13,6 +13,16 @@
 ````
 db.additional.modules=myplaces, userlayer, example, peltodata
 ````
+* Also oskari-ext.properties, configure peltodata UI bundle so that logged in user can see it
+  * Add peltodata to dynamic bundles as below
+  * Add configuration row for that peltodatabundle which allows Admin and User see the bundle
+````
+# Row below exists, add peltodata to it
+actionhandler.GetAppSetup.dynamic.bundles = admin-layerselector, admin-layerrights, admin-users, admin, peltodata
+# Row below does not exist, copy paste the row into the file
+actionhandler.GetAppSetup.dynamic.bundle.peltodata.roles = Admin, User
+```` 
+
 * Start debugging/running jetty
 
 ### Geoserver
@@ -23,6 +33,18 @@ db.additional.modules=myplaces, userlayer, example, peltodata
 * If different, configure to oskari-ext.properties or oskari.properties in same way that for production 
 
 ## Production settings
+
+### Oskari
+* Configure peltodata UI bundle so that logged in user can see it
+  * oskari-ext.properties
+  * Add peltodata to dynamic bundles as below
+  * Add configuration row for that peltodatabundle which allows Admin and User see the bundle
+````
+# Row below exists, add peltodata to it
+actionhandler.GetAppSetup.dynamic.bundles = admin-layerselector, admin-layerrights, admin-users, admin, peltodata
+# Row below does not exist, copy paste the row into the file
+actionhandler.GetAppSetup.dynamic.bundle.peltodata.roles = Admin, User
+```` 
 
 ### Geoserver
 * Add user to geoserver for Oskari REST api access
