@@ -1,0 +1,133 @@
+{
+	"info": {
+		"_postman_id": "9783e0d9-521a-4c08-9da1-9b4e5f8d20e7",
+		"name": "peltodata",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "add datastore internal",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "peltodata",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "peltodata",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "image/tiff"
+					}
+				],
+				"body": {
+					"mode": "file",
+					"file": {
+						"src": "/C:/Users/sami/bogota.tif"
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/geoserver/rest/workspaces/:workspace/coveragestores/:datastore/file.geotiff",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"geoserver",
+						"rest",
+						"workspaces",
+						":workspace",
+						"coveragestores",
+						":datastore",
+						"file.geotiff"
+					],
+					"variable": [
+						{
+							"key": "workspace",
+							"value": "oskari"
+						},
+						{
+							"key": "datastore",
+							"value": "pelto1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "add datastore external",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "peltodata",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "peltodata",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "text/plain",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "file:/bogota.tif"
+				},
+				"url": {
+					"raw": "http://localhost:8080/geoserver/rest/workspaces/:workspace/coveragestores/:datastore/external.geotiff",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"geoserver",
+						"rest",
+						"workspaces",
+						":workspace",
+						"coveragestores",
+						":datastore",
+						"external.geotiff"
+					],
+					"variable": [
+						{
+							"key": "workspace",
+							"value": "oskari"
+						},
+						{
+							"key": "datastore",
+							"value": "pelto22"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
