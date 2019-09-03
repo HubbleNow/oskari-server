@@ -6,7 +6,9 @@ import fi.nls.oskari.util.PropertyUtil;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.FileEntity;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
@@ -15,7 +17,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class GeoserverClient {
     private static final Logger LOG = LogFactory.getLogger(GeoserverClient.class);
@@ -26,10 +30,16 @@ public class GeoserverClient {
     private static final String PROP_GS_PELTODATA_WS_NAME = "geoserver.peltodata.workspace";//"raster" in prod
 
     public void saveTiffAsDatastore(String datastoreName, Path tiffFile) throws GeoserverException {
+        LOG.info("saveTiffAsDatastore ds={} file={}", datastoreName, tiffFile.toString());
         saveTiffAsDatastore(getDefaultWorkspaceName(), datastoreName, tiffFile, true);
     }
 
     public void saveTiffAsDatastore(String workspace, String datastoreName, Path tiffFile, boolean useExistingFile) throws GeoserverException {
+        if (!Files.exists(tiffFile)) {
+            throw new IllegalArgumentException("file does not exist " + tiffFile.toString());
+        }
+
+
         String endPoint = getBaseUrl();
         String user = PropertyUtil.get(PROP_GS_USER, "admin");
         String pass = PropertyUtil.get(PROP_GS_PASS, "geoserver");
@@ -50,12 +60,7 @@ public class GeoserverClient {
             put.setEntity(fileEntity);
             put.setHeader("Content-Type", "image/tiff");
         } else {
-            String path = null;
-            try {
-                path = String.format("/rest/workspaces/%s/coveragestores/%s/external.geotiff?filename=%s", workspace, datastoreName, URLEncoder.encode(tiffFile.toFile().toURI().toString(), "UTF-8"));
-            } catch (UnsupportedEncodingException e) {
-                throw new GeoserverException(e);
-            }
+            String path = String.format("/rest/workspaces/%s/coveragestores/%s/external.geotiff", workspace, datastoreName);
             String baseUri = endPoint + path;
             URI uri;
             try {
@@ -69,8 +74,10 @@ public class GeoserverClient {
         }
 
         try (CloseableHttpClient client = HttpClients.createDefault()) {
+            StringEntity stringEntity = new StringEntity("file:/" + tiffFile.toString(), ContentType.TEXT_PLAIN);
+            put.setEntity(stringEntity);
             CloseableHttpResponse response = client.execute(put);
-            LOG.debug("response", response);
+            LOG.info("response from geoserver " + response);
         } catch (IOException e) {
             throw new GeoserverException(e);
         }

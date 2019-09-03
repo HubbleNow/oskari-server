@@ -33,6 +33,7 @@ import javax.sql.DataSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,7 +45,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Oskari
-public class PeltodataServiceMybatisImpl extends OskariComponent implements PeltodataService  {
+public class PeltodataServiceMybatisImpl extends OskariComponent implements PeltodataService {
 
     private static final Logger LOG = LogFactory.getLogger(PeltodataServiceMybatisImpl.class);
 
@@ -88,10 +89,10 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     private Farmfield mapData(Map<String, Object> data, SqlSession session) {
-        if(data == null) {
+        if (data == null) {
             return null;
         }
-        if(data.get("id") == null) {
+        if (data.get("id") == null) {
             // this will make the keys case insensitive (needed for hsqldb compatibility...)
             final Map<String, Object> caseInsensitiveData = new TreeMap<String, Object>(String.CASE_INSENSITIVE_ORDER);
             caseInsensitiveData.putAll(data);
@@ -111,7 +112,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
             farmfield.setUserId(userId);
             farmfield.setUser(user);
         } catch (ServiceException e) {
-            LOG.error("Could not find user with id {}", new Object[] { data.get("user_id") });
+            LOG.error("Could not find user with id {}", new Object[]{data.get("user_id")});
         }
         final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);
         List<Integer> layerIds = mapper.findFarmLayers(farmfieldId);
@@ -121,11 +122,11 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         return farmfield;
     }
 
-    private List<Farmfield> mapDataList(final List<Map<String,Object>> list, SqlSession session) {
+    private List<Farmfield> mapDataList(final List<Map<String, Object>> list, SqlSession session) {
         final List<Farmfield> farmfields = new ArrayList<>();
-        for(Map<String, Object> map : list) {
+        for (Map<String, Object> map : list) {
             final Farmfield farmfield = mapData(map, session);
-            if(farmfield != null) {
+            if (farmfield != null) {
                 farmfields.add(farmfield);
             }
         }
@@ -156,7 +157,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         final SqlSession session = factory.openSession();
         try {
             final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);
-            List<Map<String,Object>> result = mapper.findAllFarmFields();
+            List<Map<String, Object>> result = mapper.findAllFarmFields();
             LOG.debug("Find all fields:", System.currentTimeMillis() - start, "ms");
             start = System.currentTimeMillis();
             final List<Farmfield> farmfields = mapDataList(result, session);
@@ -176,7 +177,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         final SqlSession session = factory.openSession();
         try {
             final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);
-            List<Map<String,Object>> result = mapper.findAllFarmFieldsByUserId(userId);
+            List<Map<String, Object>> result = mapper.findAllFarmFieldsByUserId(userId);
             LOG.debug("Find all fields by user:", System.currentTimeMillis() - start, "ms");
             start = System.currentTimeMillis();
             final List<Farmfield> farmfields = mapDataList(result, session);
@@ -289,7 +290,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
             if (Files.exists(farmfieldRootPath)) {
                 List<String> fileList = Files.walk(Paths.get(getFarmUploadRootPath(farmfieldId)))
                         .filter(Files::isRegularFile)
-                        .map(a -> getRelativeFarmfieldFilePath(a))
+                        .map(this::getRelativeFarmfieldFilePath)
                         .collect(Collectors.toList());
                 return fileList;
             }
@@ -328,22 +329,16 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         int year = Year.now().getValue();
         String uploadPath = getUploadPath(year, farmfieldId, dataType);
         String filePathString = uploadPath + filename;
-        LOG.debug("about upload file : " + filePathString);
+        LOG.info("about upload file : " + filePathString);
         boolean success = false;
         Path newFile = Paths.get(filePathString);
+        LOG.info("full path " + FileSystems.getDefault().getPath(newFile.toString()).normalize().toAbsolutePath());
         try {
             Files.createDirectories(newFile.getParent());
             Files.copy(inputStream, newFile);
             success = true;
         } catch (IOException e) {
             LOG.error(e, "Error occured while writing file: " + filePathString);
-        } finally {
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                }
-            }
         }
         return success ? getRelativeFarmfieldFilePath(newFile) : null;
     }
@@ -374,34 +369,35 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         String wmsBaseUrl = geoserverClient.getWMSBaseUrl();
         String filename = Paths.get(inputFilepath).getFileName().toString();
         filename = filename.substring(0, filename.indexOf('.'));
+        String description = getCleanedUpDescription(farmfield);
+        String maplayerName = description + "_" + filename;
+        List<OskariLayer> layers = oskariLayerService.findByUrlAndName(wmsBaseUrl, maplayerName);
+        if (layers != null && layers.size() > 0) {
+            throw new RuntimeException("layer exists");
+        }
+
+        String fullPath = getFarmUploadRootPath(farmfield.getId()) + inputFilepath;
+        try {
+            Path absolutePath = FileSystems.getDefault().getPath(fullPath).normalize().toAbsolutePath();
+            geoserverClient.saveTiffAsDatastore(maplayerName, absolutePath);
+            return maplayerName;
+        } catch (GeoserverException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String getCleanedUpDescription(Farmfield farmfield) {
         String description = farmfield.getDescription().toLowerCase();
-        char[] forbidden = new char[] {'ä', 'ö', ' '};
-        char[] converted = new char[] {'a', 'o', '_'};
-        for (int i = 0; i < description.length();  i++) {
-            for(int j = 0; j < forbidden.length;  j++) {
+        char[] forbidden = new char[]{'ä', 'ö', ' '};
+        char[] converted = new char[]{'a', 'o', '_'};
+        for (int i = 0; i < description.length(); i++) {
+            for (int j = 0; j < forbidden.length; j++) {
                 if (description.charAt(i) == forbidden[j]) {
                     description = description.replace(forbidden[j], converted[j]);
                 }
             }
         }
-        String maplayerName = description+"_"+filename;// == datastorename ??
-        List<OskariLayer> layers = oskariLayerService.findByUrlAndName(wmsBaseUrl, maplayerName);
-        if (layers != null && layers.size() > 0) {
-            throw new RuntimeException("layer exists");
-        } else {
-            String farmUploadPathRelative = "."
-                    + File.separator + "farms"
-                    + File.separator + farmfield.getId()
-                    + File.separator;
-            //String fullPath = getFarmUploadRootPath(farmfield.getId()) + inputFilepath;
-            String fullPath = farmUploadPathRelative + inputFilepath;
-            try {
-                geoserverClient.saveTiffAsDatastore(maplayerName, Paths.get(fullPath));
-                return maplayerName;
-            } catch (GeoserverException e) {
-                return null;
-            }
-        }
+        return description;
     }
 
 }

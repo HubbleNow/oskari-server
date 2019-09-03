@@ -18,10 +18,13 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -182,10 +185,11 @@ public class PeltodataController {
         }
     }
 
-    @RequestMapping(value = "farms/{id}/file", method = RequestMethod.POST, consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @RequestMapping(value = "farms/{id}/file", method = RequestMethod.POST, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseBody
     public String uploadFarmfieldLayerDataFile(@PathVariable("id") Long farmFieldId,
                                                @RequestParam(value = "type", required = true) String type,
+                                               @RequestPart("file") MultipartFile file,
                                                @OskariParam ActionParameters params,
                                                HttpServletRequest request,
                                                HttpServletResponse response) throws IOException {
@@ -206,7 +210,10 @@ public class PeltodataController {
             }
             //for now timestamp from upload moment
             String filename = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + "." + dataType.getDataFormat();
-            String filePathString = peltodataService.uploadLayerData(farmFieldId, request.getInputStream(), dataType, filename);
+            String filePathString = null;
+            try (InputStream in = file.getInputStream()){
+                filePathString = peltodataService.uploadLayerData(farmFieldId, in, dataType, filename);
+            }
             if (filePathString == null) {
                 response.setStatus(HttpStatus.BAD_REQUEST.value());
             }
