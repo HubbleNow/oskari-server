@@ -9,6 +9,7 @@ import fi.peltodata.controller.request.UserFarmfieldCreateRequest;
 import fi.peltodata.controller.request.UserFarmfieldUpdateRequest;
 import fi.peltodata.controller.response.UserFarmfieldResponse;
 import fi.peltodata.domain.Farmfield;
+import fi.peltodata.domain.FarmfieldExecution;
 import fi.peltodata.domain.FarmfieldFileDataType;
 import fi.peltodata.service.PeltodataService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -297,5 +298,11 @@ public class PeltodataController {
     public List<String> getFarmfieldLayerFileDataTypes() {
         return EnumSet.allOf(FarmfieldFileDataType.class)
                 .stream().sorted().map(t -> t.getTypeId()).collect(Collectors.toList());
+    }
+
+    @RequestMapping(value = "farms/executions", method = RequestMethod.GET)
+    @ResponseBody
+    public List<FarmfieldExecution> getFarmfieldExecutions() {
+        return peltodataService.findAllFarmfieldExecutionsForUser();
     }
 }

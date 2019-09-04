@@ -1,6 +1,7 @@
 package fi.peltodata.service;
 
 import fi.peltodata.domain.Farmfield;
+import fi.peltodata.domain.FarmfieldExecution;
 import fi.peltodata.domain.FarmfieldFileDataType;
 
 import java.io.InputStream;
@@ -25,4 +26,5 @@ public interface PeltodataService {
                               FarmfieldFileDataType inputDataType, FarmfieldFileDataType outputDataType);
     String createFarmfieldGeoserverLayer(Farmfield farmfield, Path absolutePath);
 
+    List<FarmfieldExecution> findAllFarmfieldExecutionsForUser();
 }

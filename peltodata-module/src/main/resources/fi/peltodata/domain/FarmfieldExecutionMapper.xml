@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="fi.peltodata.domain.FarmfieldExecutionMapper">
+
+    <resultMap id="FarmfieldExecution" type="FarmfieldExecution">
+        <result property="id" column="id" />
+        <result property="state" column="state" />
+        <result property="outputType" column="outputType" />
+        <result property="executionStartedAt" column="executionStartedAt" />
+        <result property="farmfieldId" column="farmfieldId" />
+    </resultMap>
+    <select id="findAllFarmfieldExecutionsForUser" resultType="map" parameterType="map">
+        select pf.* from peltodata_field pf where pf.id = #{farmfieldId}
+    </select>
+
+    <insert id="insertFarmfieldExecution" parameterType="FarmfieldExecution" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO peltodata_field_execution (
+            id,
+            state,
+            output_type,
+            execution_started_at,
+            field_id
+        )
+        VALUES (
+            #{id},
+            #{state},
+            #{outputType},
+            #{executionStartedAt},
+            #{farmfieldId}
+        )
+    </insert>
+
+    <update id="updateFarmfieldExecution" parameterType="FarmfieldExecution">
+        UPDATE peltodata_field_execution set
+            state = #{state},
+            output_type = #{outputType},
+            execution_started_at = #{executionStartedAt},
+            field_id = #{fieldId}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteFarmfieldExecution" parameterType="Long">
+        delete from peltodata_field_execution where id = #{id}
+    </delete>
+</mapper>
