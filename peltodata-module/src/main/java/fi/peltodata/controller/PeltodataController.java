@@ -285,7 +285,8 @@ public class PeltodataController {
             } else {
                 String inputFilenamePath = match.get();
                 //TODO: rename to createGeoserverLayer
-                return peltodataService.createFarmfieldLayer(farmFieldId, inputFilenamePath, inputDataType, outputDataType);
+                peltodataService.createFarmfieldLayer(farmFieldId, inputFilenamePath, inputDataType, outputDataType);
+                return "";
                 //TODO: consider oskarilayer savehandler call in addition???
             }
         }

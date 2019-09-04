@@ -4,9 +4,8 @@ import fi.peltodata.domain.Farmfield;
 import fi.peltodata.domain.FarmfieldFileDataType;
 
 import java.io.InputStream;
-import java.time.LocalDateTime;
+import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 
 public interface PeltodataService {
     Farmfield findFarmfield(long id);
@@ -22,7 +21,8 @@ public interface PeltodataService {
     boolean fileExists(long farmfieldId, FarmfieldFileDataType dataType, String filename);
     List<String> findAllFarmfieldFiles(long farmfieldId);
 
-    String createFarmfieldLayer(long farmfieldId, String inputFilepath,
-                                FarmfieldFileDataType inputDataType, FarmfieldFileDataType outputDataType);
+    void createFarmfieldLayer(long farmfieldId, String inputFilepath,
+                              FarmfieldFileDataType inputDataType, FarmfieldFileDataType outputDataType);
+    String createFarmfieldGeoserverLayer(Farmfield farmfield, Path absolutePath);
 
 }

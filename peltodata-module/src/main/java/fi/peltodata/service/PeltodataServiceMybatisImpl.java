@@ -38,10 +38,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Date;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Oskari
@@ -54,10 +55,12 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     private static OskariMapLayerGroupService oskariMapLayerGroupService = new OskariMapLayerGroupServiceIbatisImpl();
     private static OskariLayerService oskariLayerService = new OskariLayerServiceMybatisImpl();
     private UserService userService;
+    private Executor executor;
 
     private GeoserverClient geoserverClient;
 
     protected PeltodataServiceMybatisImpl(UserService userService, GeoserverClient geoserverClient) throws ServiceException {
+        executor = Executors.newFixedThreadPool(3);
         final DatasourceHelper helper = DatasourceHelper.getInstance();
         DataSource dataSource = helper.getDataSource();
         if (dataSource == null) {
@@ -344,30 +347,65 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public String createFarmfieldLayer(long farmfieldId, String inputFilepath,
-                                       FarmfieldFileDataType inputDataType, FarmfieldFileDataType outputDataType) {
-        String filePath = getFarmUploadRootPath(farmfieldId) + inputFilepath;//need to use relative to geoserver or not?
+    public void createFarmfieldLayer(long farmfieldId, String inputFilepath,
+                                     FarmfieldFileDataType inputDataType, FarmfieldFileDataType outputDataType) {
+        LOG.info("createFarmfieldLayer id={} inputfile={} inputtype={} outputtype={}",
+                farmfieldId, inputFilepath, inputDataType.toString(), outputDataType.toString());
+        String fullPath = getFarmUploadRootPath(farmfieldId) + inputFilepath;
         Farmfield farmfield = findFarmfield(farmfieldId);
-        String geoserverLayerName = createFarmfieldGeoserverLayer(farmfield, inputFilepath, outputDataType);
+
+
+        Path absolutePath = FileSystems.getDefault().getPath(fullPath).normalize().toAbsolutePath();
+
+        startAsyncFarmfieldLayerConversionCreation(farmfield, absolutePath, outputDataType);
+
+        // String geoserverLayerName = createFarmfieldGeoserverLayer(farmfield, inputFilepath, outputDataType);
         //create geoserver datastore + publish + wms layer (srs?)
         // investigate if web-api or !!!! { fi.nls.oskari.control.layer.SaveLayerHandler.saveLayer } could be used instead (--> decoupling out of this service)
         // minimum inputs (layername, groups, permissions, srs?, force-proxy ?)
         //  --- create layer
         //  --- assign permissions for user 2
         //add peltodata_field_layer row
-
-        return geoserverLayerName;
     }
 
-    protected void startAsyncFarmfieldLayerConversionCreation(long farmfieldId, String inputFilepath, FarmfieldFileDataType outputDataType) {
-        // call python (sync??)
-        // add to queue (singleton) which is read by
+    protected void startAsyncFarmfieldLayerConversionCreation(Farmfield farmfield, Path inputFilepath, FarmfieldFileDataType outputDataType) {
+
+        // ....\2019\crop_estimation_raw\20190904125547.tiff -> ....\2019
+        Path root = inputFilepath.getParent().getParent();
+        Path outputFilePath = Paths.get(root.toString(), outputDataType.getFolderName(), inputFilepath.getFileName().toString());
+        try {
+            Files.createDirectories(outputFilePath.getParent());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create output directory" + outputFilePath.getParent().toString(), e);
+        }
+
+        LOG.info("Starting async conversion of {} to {} type={}", inputFilepath.toString(), outputFilePath.toString(), outputDataType.toString());
+
+        switch (outputDataType) {
+            case CROP_ESTIMATION_RAW_DATA:
+                createFarmfieldGeoserverLayer(farmfield, inputFilepath);
+                break;
+            case CROP_ESTIMATION_DATA:
+                CropEstimationTask cropEstimationTask = new CropEstimationTask(this, farmfield, inputFilepath, outputFilePath);
+                executor.execute(cropEstimationTask);
+                break;
+            case YIELD_RAW_DATA:
+                break;
+            case YIELD_DATA:
+                YieldImageTask yieldImageTask = new YieldImageTask(this, farmfield, inputFilepath, outputFilePath);
+                executor.execute(yieldImageTask);
+                break;
+        }
     }
 
-    protected String createFarmfieldGeoserverLayer(Farmfield farmfield, String inputFilepath, FarmfieldFileDataType outputDataType) {
+    public String createFarmfieldGeoserverLayer(Farmfield farmfield, Path absolutePath) {
+        if (!Files.exists(absolutePath)) {
+            throw new IllegalArgumentException("absolutePath does not exist " + absolutePath);
+        }
+
         // check if layer exists ? throw, null or update if exists ??
         String wmsBaseUrl = geoserverClient.getWMSBaseUrl();
-        String filename = Paths.get(inputFilepath).getFileName().toString();
+        String filename = absolutePath.getFileName().toString();
         filename = filename.substring(0, filename.indexOf('.'));
         String description = getCleanedUpDescription(farmfield);
         String maplayerName = description + "_" + filename;
@@ -376,9 +414,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
             throw new RuntimeException("layer exists");
         }
 
-        String fullPath = getFarmUploadRootPath(farmfield.getId()) + inputFilepath;
         try {
-            Path absolutePath = FileSystems.getDefault().getPath(fullPath).normalize().toAbsolutePath();
             geoserverClient.saveTiffAsDatastore(maplayerName, absolutePath);
             return maplayerName;
         } catch (GeoserverException e) {
