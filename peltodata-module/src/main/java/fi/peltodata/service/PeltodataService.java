@@ -26,5 +26,13 @@ public interface PeltodataService {
                               FarmfieldFileDataType inputDataType, FarmfieldFileDataType outputDataType);
     String createFarmfieldGeoserverLayer(Farmfield farmfield, Path absolutePath);
 
-    List<FarmfieldExecution> findAllFarmfieldExecutionsForUser();
+    List<FarmfieldExecution> findAllFarmfieldExecutionsForUser(Long userId);
+
+    List<FarmfieldExecution> findAllFarmfieldExecutions();
+
+    FarmfieldExecution farmfieldExecutionStarted(Farmfield farmfield, String outputType);
+
+    void farmfieldExecutionCompleted(FarmfieldExecution execution);
+
+    void farmfieldExecutionFailed(FarmfieldExecution execution);
 }

@@ -302,7 +302,13 @@ public class PeltodataController {
 
     @RequestMapping(value = "farms/executions", method = RequestMethod.GET)
     @ResponseBody
-    public List<FarmfieldExecution> getFarmfieldExecutions() {
-        return peltodataService.findAllFarmfieldExecutionsForUser();
+    public List<FarmfieldExecution> getFarmfieldExecutions(@OskariParam ActionParameters params) {
+        User user = params.getUser();
+        if (user.isGuest()) {
+            throw new AccessDeniedException("getFarmfieldExecutions not allowed for guest");
+        } else if (user.isAdmin()) {
+            return peltodataService.findAllFarmfieldExecutions();
+        }
+        return peltodataService.findAllFarmfieldExecutionsForUser(user.getId());
     }
 }

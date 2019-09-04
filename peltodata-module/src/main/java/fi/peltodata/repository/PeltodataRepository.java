@@ -14,5 +14,13 @@ public interface PeltodataRepository {
     void updateFarmfield(final Farmfield farmfield);
     void deleteFarmfield(final long layerId);
 
-    List<FarmfieldExecution> findAllFarmfieldExecutionsForUser();
+    List<FarmfieldExecution> findAllFarmfieldExecutionsForUser(Long userId);
+
+    List<FarmfieldExecution> findAllFarmfieldExecutions();
+
+    void insertFarmfieldExecution(FarmfieldExecution execution);
+
+    void updateFarmfieldExecution(FarmfieldExecution execution);
+
+    FarmfieldExecution findFarmfieldExecution(long id);
 }

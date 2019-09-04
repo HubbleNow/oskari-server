@@ -1,33 +1,17 @@
 package fi.peltodata.service;
 
-import com.google.common.io.Files;
-import fi.nls.oskari.log.LogFactory;
-import fi.nls.oskari.log.Logger;
 import fi.peltodata.domain.Farmfield;
 
-import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Optional;
 
-public class CropEstimationTask implements Runnable {
-    private static final Logger LOG = LogFactory.getLogger(CropEstimationTask.class);
+public class CropEstimationTask extends ExecutionTask {
 
-    private PeltodataService peltodataService;
-    private Farmfield farmfield;
-    private Path inputFilePath;
-    private Path outputFilePath;
-
-    public CropEstimationTask(PeltodataService peltodataService, Farmfield farmfield, Path inputFilepath, Path outputFilePath) {
-        this.peltodataService = peltodataService;
-        this.farmfield = farmfield;
-        this.inputFilePath = inputFilepath;
-        this.outputFilePath = outputFilePath;
+    public CropEstimationTask(PeltodataService peltodataService, Farmfield farmfield, Path inputFilepath, Path outputFilePath, String outputType) {
+        super(peltodataService, farmfield, inputFilepath, outputFilePath, outputType);
     }
 
     @Override
-    public void run() {
-        LOG.info("Starting to create crop estimation from " + inputFilePath);
+    void createOutput() throws Exception {
         try {
             // Fake delay
             Thread.sleep(5000);
@@ -35,14 +19,6 @@ public class CropEstimationTask implements Runnable {
             e.printStackTrace();
         }
 
-        LOG.info("Crop estimation created output={}", outputFilePath.toString());
-        try {
-            java.nio.file.Files.copy(inputFilePath, outputFilePath);
-        } catch (IOException e) {
-            LOG.error("Failed to create yield data image");
-            throw new RuntimeException("Failed to copy file", e);
-        }
-
-        peltodataService.createFarmfieldGeoserverLayer(farmfield, outputFilePath);
+        java.nio.file.Files.copy(getInputFilePath(), getOutputFilePath());
     }
 }

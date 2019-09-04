@@ -205,13 +205,13 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
                 createFarmfieldGeoserverLayer(farmfield, inputFilepath);
                 break;
             case CROP_ESTIMATION_DATA:
-                CropEstimationTask cropEstimationTask = new CropEstimationTask(this, farmfield, inputFilepath, outputFilePath);
+                CropEstimationTask cropEstimationTask = new CropEstimationTask(this, farmfield, inputFilepath, outputFilePath, outputDataType.getTypeId());
                 executor.execute(cropEstimationTask);
                 break;
             case YIELD_RAW_DATA:
                 break;
             case YIELD_DATA:
-                YieldImageTask yieldImageTask = new YieldImageTask(this, farmfield, inputFilepath, outputFilePath);
+                YieldImageTask yieldImageTask = new YieldImageTask(this, farmfield, inputFilepath, outputFilePath, outputDataType.getTypeId());
                 executor.execute(yieldImageTask);
                 break;
         }
@@ -242,8 +242,38 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public List<FarmfieldExecution> findAllFarmfieldExecutionsForUser() {
-        return peltodataRepository.findAllFarmfieldExecutionsForUser();
+    public List<FarmfieldExecution> findAllFarmfieldExecutionsForUser(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("userid cannot be null");
+        }
+        return peltodataRepository.findAllFarmfieldExecutionsForUser(userId);
+    }
+
+    @Override
+    public List<FarmfieldExecution> findAllFarmfieldExecutions() {
+        return peltodataRepository.findAllFarmfieldExecutions();
+    }
+
+    @Override
+    public FarmfieldExecution farmfieldExecutionStarted(Farmfield farmfield, String outputType) {
+        FarmfieldExecution execution = new FarmfieldExecution();
+        execution.setState(0);
+        execution.setOutputType(outputType);
+        execution.setFarmfieldId(farmfield.getId());
+        peltodataRepository.insertFarmfieldExecution(execution);
+        return peltodataRepository.findFarmfieldExecution(execution.getId());
+    }
+
+    @Override
+    public void farmfieldExecutionCompleted(FarmfieldExecution execution) {
+        execution.setState(10);
+        peltodataRepository.updateFarmfieldExecution(execution);
+    }
+
+    @Override
+    public void farmfieldExecutionFailed(FarmfieldExecution execution) {
+        execution.setState(-10);
+        peltodataRepository.updateFarmfieldExecution(execution);
     }
 
     private String getCleanedUpDescription(Farmfield farmfield) {

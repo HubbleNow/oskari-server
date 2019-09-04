@@ -1,6 +1,5 @@
 package fi.peltodata.repository;
 
-import fi.nls.oskari.annotation.Oskari;
 import fi.nls.oskari.db.DatasourceHelper;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.OskariLayer;
@@ -21,8 +20,6 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.sql.Date;
@@ -159,17 +156,14 @@ public class PeltodataRepositoryImpl implements PeltodataRepository {
     @Override
     public boolean farmfieldBelongsToUser(long farmfieldId, long userId) {
         LOG.debug("check if farmfield belongs to user");
-        final SqlSession session = factory.openSession();
         boolean belongsToUser;
-        try {
+        try (SqlSession session = factory.openSession()) {
             final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);
             Map<String, Object> farmFieldData = mapper.findFarmField(farmfieldId);
             Farmfield farmfield = mapData(farmFieldData, session);
             belongsToUser = farmfield.getUserId().equals(userId);
         } catch (Exception e) {
             throw new RuntimeException("Failed to check", e);
-        } finally {
-            session.close();
         }
         return belongsToUser;
     }
@@ -221,12 +215,46 @@ public class PeltodataRepositoryImpl implements PeltodataRepository {
     }
 
     @Override
-    public List<FarmfieldExecution> findAllFarmfieldExecutionsForUser() {
+    public List<FarmfieldExecution> findAllFarmfieldExecutionsForUser(Long userId) {
         try (final SqlSession session = factory.openSession()) {
             final FarmfieldExecutionMapper mapper = session.getMapper(FarmfieldExecutionMapper.class);
-            List<Map<String, Object>> executions = mapper.findAllFarmFieldExecutionsForUser();
+            List<FarmfieldExecution> executions = mapper.findAllFarmFieldExecutionsForUser(userId);
+            return executions;
         }
+    }
 
-        return Collections.emptyList();
+    @Override
+    public List<FarmfieldExecution> findAllFarmfieldExecutions() {
+        try (final SqlSession session = factory.openSession()) {
+            final FarmfieldExecutionMapper mapper = session.getMapper(FarmfieldExecutionMapper.class);
+            List<FarmfieldExecution> executions = mapper.findAllFarmfieldExecutions();
+            return executions;
+        }
+    }
+
+    @Override
+    public void insertFarmfieldExecution(FarmfieldExecution execution) {
+        try (final SqlSession session = factory.openSession()) {
+            final FarmfieldExecutionMapper mapper = session.getMapper(FarmfieldExecutionMapper.class);
+            mapper.insertFarmfieldExecution(execution);
+            session.commit();
+        }
+    }
+
+    @Override
+    public void updateFarmfieldExecution(FarmfieldExecution execution) {
+        try (final SqlSession session = factory.openSession()) {
+            final FarmfieldExecutionMapper mapper = session.getMapper(FarmfieldExecutionMapper.class);
+            mapper.updateFarmfieldExecution(execution);
+            session.commit();
+        }
+    }
+
+    @Override
+    public FarmfieldExecution findFarmfieldExecution(long id) {
+        try (final SqlSession session = factory.openSession()) {
+            final FarmfieldExecutionMapper mapper = session.getMapper(FarmfieldExecutionMapper.class);
+            return mapper.findFarmfieldById(id);
+        }
     }
 }
