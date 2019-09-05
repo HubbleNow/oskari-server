@@ -1,5 +1,6 @@
 package fi.peltodata.service;
 
+import fi.nls.oskari.service.ServiceException;
 import fi.peltodata.domain.Farmfield;
 import fi.peltodata.domain.FarmfieldExecution;
 import fi.peltodata.domain.FarmfieldFileDataType;

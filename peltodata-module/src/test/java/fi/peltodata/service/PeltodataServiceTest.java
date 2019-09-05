@@ -1,13 +1,15 @@
 package fi.peltodata.service;
 
+import fi.mml.map.mapwindow.service.db.OskariMapLayerGroupService;
 import fi.nls.oskari.db.DBHandler;
 import fi.nls.oskari.db.DatasourceHelper;
 import fi.nls.oskari.db.FlywaydbMigrator;
 import fi.nls.oskari.domain.Role;
 import fi.nls.oskari.domain.User;
+import fi.nls.oskari.domain.map.DataProvider;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.map.layer.DataProviderService;
 import fi.nls.oskari.map.layer.OskariLayerService;
-import fi.nls.oskari.map.layer.OskariLayerServiceMybatisImpl;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.UserService;
 import fi.nls.oskari.util.DuplicateException;
@@ -21,6 +23,7 @@ import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.mock.jndi.SimpleNamingContextBuilder;
 
 import javax.naming.NamingException;
@@ -34,27 +37,43 @@ public class PeltodataServiceTest {
 
     private PeltodataService peltodataService = null;
     private OskariLayerService oskariLayerService = null;
+    private OskariMapLayerGroupService oskariMapLayerGroupService = null;
+    private DataProviderService dataProviderService = null;
 
     public PeltodataServiceTest() throws ServiceException {
     }
 
     @BeforeClass
     public static void init() throws DuplicateException, NamingException {
+        // similar flow like in webapphelper
+
+        // 1. set context
         PropertyUtil.loadProperties("/oskari-ext.properties");
         final DatasourceHelper helper = DatasourceHelper.getInstance();
         BasicDataSource datasource = helper.createDataSource();
 
         SimpleNamingContextBuilder builder = SimpleNamingContextBuilder.emptyActivatedContextBuilder();
         builder.bind("java:comp/env/jdbc/OskariPool", datasource);// to make user and role-services work
+        builder.bind("java:/comp/env/jdbc/OskariPool", datasource);// to make OskariMapLayerGroupService work
 
+        // 2. create content
         DBHandler.createContentIfNotCreated(datasource);
+        // 3. call migrations (fails ATM)
+        //failures running oskari-migrations with hsql and h2
+        // flyway\oskari\V1_31_5_1__fix_sequence_on_portti_bundle.sql (syntax not supported)
+        // create-base-tables.sql contains already portti_view.metadata TEXT DEFAULT '{}'
+        // flyway/oskari/V1_32_0__new_capabilities_cache.sql contains MATCH (not supported by h2)
+        //FlywaydbMigrator.migrate(datasource);
+
+        // 4. call additional migrations
         FlywaydbMigrator.migrate(datasource, "peltodata");
     }
 
     @Before
     public void setUp() throws ServiceException {
-        peltodataService = new PeltodataServiceMybatisImpl();
-        oskariLayerService = new OskariLayerServiceMybatisImpl();
+        oskariMapLayerGroupService = Mockito.mock(OskariMapLayerGroupService.class);//cannot use real migrate fails
+        dataProviderService = Mockito.mock(DataProviderService.class);//cannot use real migrate fails
+        peltodataService = new PeltodataServiceMybatisImpl(oskariMapLayerGroupService, dataProviderService);
     }
 
     @Test
@@ -65,6 +84,29 @@ public class PeltodataServiceTest {
         assertEquals(field.getCropType(), farmFieldForNewUser.getCropType());
         assertEquals(field.getSowingDate(), farmFieldForNewUser.getSowingDate());
         assertNotNull(field.getUser().getScreenname());
+        // OSKARI_MAPLAYER_GROUP does not exist see #init problems with migrate
+/*        assertNotNull(field.getUser().getScreenname());
+        MaplayerGroup group = oskariMapLayerGroupService.findByName(field.getDescription().toLowerCase());
+        assertNotNull(group);*/
+
+        Mockito.verify(dataProviderService, Mockito.atMost(1)).insert(Mockito.any());
+        Mockito.verify(dataProviderService)
+                .insert(Mockito.argThat(dataProvider ->
+                        dataProvider.getNames().get("fi").equals(farmFieldForNewUser.getUser().getScreenname())));
+    }
+
+    @Test
+    public void testAddAsIfDataProviderExists() throws ServiceException, JSONException {
+        Mockito.doReturn(new DataProvider()).when(dataProviderService).findByName(Mockito.any());
+
+        Farmfield farmFieldForNewUser = createFarmFieldForNewUser();
+        Farmfield field = peltodataService.findFarmfield(farmFieldForNewUser.getId());
+        assertEquals(field.getDescription(), farmFieldForNewUser.getDescription());
+        assertEquals(field.getCropType(), farmFieldForNewUser.getCropType());
+        assertEquals(field.getSowingDate(), farmFieldForNewUser.getSowingDate());
+        assertNotNull(field.getUser().getScreenname());
+
+        Mockito.verify(dataProviderService, Mockito.never()).insert(Mockito.any());
     }
 
     @Test

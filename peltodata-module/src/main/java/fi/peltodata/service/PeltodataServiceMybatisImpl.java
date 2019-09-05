@@ -3,9 +3,14 @@ package fi.peltodata.service;
 import fi.mml.map.mapwindow.service.db.OskariMapLayerGroupService;
 import fi.mml.map.mapwindow.service.db.OskariMapLayerGroupServiceIbatisImpl;
 import fi.nls.oskari.annotation.Oskari;
+import fi.nls.oskari.domain.User;
+import fi.nls.oskari.domain.map.DataProvider;
+import fi.nls.oskari.domain.map.MaplayerGroup;
 import fi.nls.oskari.domain.map.OskariLayer;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.map.layer.DataProviderService;
+import fi.nls.oskari.map.layer.DataProviderServiceMybatisImpl;
 import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.map.layer.OskariLayerServiceMybatisImpl;
 import fi.nls.oskari.service.OskariComponent;
@@ -13,7 +18,9 @@ import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.UserService;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.peltodata.config.PeltodataConfig;
-import fi.peltodata.domain.*;
+import fi.peltodata.domain.Farmfield;
+import fi.peltodata.domain.FarmfieldExecution;
+import fi.peltodata.domain.FarmfieldFileDataType;
 import fi.peltodata.geoserver.GeoserverClient;
 import fi.peltodata.geoserver.GeoserverException;
 import fi.peltodata.repository.PeltodataRepository;
@@ -37,13 +44,28 @@ import java.util.stream.Collectors;
 public class PeltodataServiceMybatisImpl extends OskariComponent implements PeltodataService {
     private static final Logger LOG = LogFactory.getLogger(PeltodataRepositoryImpl.class);
     private PeltodataRepository peltodataRepository;
-    private static OskariMapLayerGroupService oskariMapLayerGroupService = new OskariMapLayerGroupServiceIbatisImpl();
+    private OskariMapLayerGroupService oskariMapLayerGroupService;
+    private DataProviderService dataProviderService;
     private static OskariLayerService oskariLayerService = new OskariLayerServiceMybatisImpl();
     private Executor executor;
+    private UserService userService;
 
     private GeoserverClient geoserverClient;
 
     public PeltodataServiceMybatisImpl() throws ServiceException {
+        this(UserService.getInstance(), new GeoserverClient(), new OskariMapLayerGroupServiceIbatisImpl(), new DataProviderServiceMybatisImpl());
+    }
+
+    protected PeltodataServiceMybatisImpl(UserService userService, GeoserverClient geoserverClient,
+                                          OskariMapLayerGroupService oskariMapLayerGroupService,
+                                          DataProviderService dataProviderService) throws ServiceException {
+        this.oskariMapLayerGroupService = oskariMapLayerGroupService;
+        this.dataProviderService = dataProviderService;
+        this.userService = userService;
+    }
+
+    protected PeltodataServiceMybatisImpl(OskariMapLayerGroupService oskariMapLayerGroupService, DataProviderService dataProviderService) throws ServiceException {
+        this(UserService.getInstance(), new GeoserverClient(), oskariMapLayerGroupService, dataProviderService);
         UserService userService = UserService.getInstance();
         PeltodataRepository peltodataRepository = new PeltodataRepositoryImpl(userService, new OskariLayerServiceMybatisImpl());
         this.peltodataRepository = peltodataRepository;
@@ -76,9 +98,55 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         peltodataRepository.updateFarmfield(farmfield);
     }
 
+    protected Map<String,String> getLanguageNameMap() {
+        Set<String> languages = new HashSet<>();
+        languages.add(PropertyUtil.getDefaultLanguage());
+        languages.addAll(Arrays.asList(PropertyUtil.getSupportedLanguages()));
+        Map<String, String> names = new HashMap<>();
+        for (String language : languages) {
+            names.put(language, "");
+        }
+        return names;
+    }
+
     @Override
     public synchronized long insertFarmfield(final Farmfield farmfield) {
-        return peltodataRepository.insertFarmfield(farmfield);
+        long farmfieldId = peltodataRepository.insertFarmfield(farmfield);
+        // farmfield created ok, next check if group and dataprovider exists
+            User user = farmfield.getUser();
+            if (user == null) {
+                Long userId = farmfield.getUserId();
+                try {
+                    user = userService.getUser(userId);
+                } catch (ServiceException e) {
+                    throw new RuntimeException("Farm created but failed get user", e);
+                }
+                farmfield.setUser(user);
+            }
+            // check if dataprovider / a.k.a. organization exists
+            String userLoginName = user.getScreenname();
+            DataProvider userProvider = dataProviderService.findByName(userLoginName);
+            if (userProvider == null) {
+                Map<String, String> names = getLanguageNameMap();
+                for (String language : names.keySet()) {
+                    names.put(language, userLoginName);
+                }
+                DataProvider dataProvider = new DataProvider();
+                dataProvider.setNames(names);
+                dataProviderService.insert(dataProvider);
+            }
+            // create group / a.k.a. theme always when new farm is created
+            String farmfieldDescription = farmfield.getDescription();
+            MaplayerGroup group = new MaplayerGroup();
+            Map<String, String> names = getLanguageNameMap();
+            for (String language : names.keySet()) {
+                names.put(language, farmfieldDescription);
+            }
+            group.setNames(names);
+            group.setParentId(-1);
+            group.setSelectable(true);
+            oskariMapLayerGroupService.insert(group);
+            return farmfieldId;
     }
 
     @Override
