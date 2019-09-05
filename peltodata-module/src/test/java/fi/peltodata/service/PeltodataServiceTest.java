@@ -15,6 +15,8 @@ import fi.nls.oskari.service.UserService;
 import fi.nls.oskari.util.DuplicateException;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.peltodata.domain.Farmfield;
+import fi.peltodata.repository.PeltodataRepository;
+import fi.peltodata.repository.PeltodataRepositoryImpl;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.json.JSONException;
 import org.json.JSONObject;

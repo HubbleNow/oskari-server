@@ -9,6 +9,7 @@ import fi.peltodata.controller.request.UserFarmfieldCreateRequest;
 import fi.peltodata.controller.request.UserFarmfieldUpdateRequest;
 import fi.peltodata.controller.response.UserFarmfieldResponse;
 import fi.peltodata.domain.Farmfield;
+import fi.peltodata.domain.FarmfieldExecution;
 import fi.peltodata.domain.FarmfieldFileDataType;
 import fi.peltodata.service.PeltodataService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -285,7 +286,8 @@ public class PeltodataController {
             } else {
                 String inputFilenamePath = match.get();
                 //TODO: rename to createGeoserverLayer
-                return peltodataService.createFarmfieldLayer(farmFieldId, inputFilenamePath, inputDataType, outputDataType);
+                peltodataService.createFarmfieldLayer(farmFieldId, inputFilenamePath, inputDataType, outputDataType);
+                return "";
                 //TODO: consider oskarilayer savehandler call in addition???
             }
         }
@@ -296,5 +298,17 @@ public class PeltodataController {
     public List<String> getFarmfieldLayerFileDataTypes() {
         return EnumSet.allOf(FarmfieldFileDataType.class)
                 .stream().sorted().map(t -> t.getTypeId()).collect(Collectors.toList());
+    }
+
+    @RequestMapping(value = "farms/executions", method = RequestMethod.GET)
+    @ResponseBody
+    public List<FarmfieldExecution> getFarmfieldExecutions(@OskariParam ActionParameters params) {
+        User user = params.getUser();
+        if (user.isGuest()) {
+            throw new AccessDeniedException("getFarmfieldExecutions not allowed for guest");
+        } else if (user.isAdmin()) {
+            return peltodataService.findAllFarmfieldExecutions();
+        }
+        return peltodataService.findAllFarmfieldExecutionsForUser(user.getId());
     }
 }
