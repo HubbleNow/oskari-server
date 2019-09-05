@@ -5,9 +5,13 @@ import fi.mml.map.mapwindow.service.db.OskariMapLayerGroupServiceIbatisImpl;
 import fi.nls.oskari.annotation.Oskari;
 import fi.nls.oskari.db.DatasourceHelper;
 import fi.nls.oskari.domain.User;
+import fi.nls.oskari.domain.map.DataProvider;
+import fi.nls.oskari.domain.map.MaplayerGroup;
 import fi.nls.oskari.domain.map.OskariLayer;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.map.layer.DataProviderService;
+import fi.nls.oskari.map.layer.DataProviderServiceMybatisImpl;
 import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.map.layer.OskariLayerServiceMybatisImpl;
 import fi.nls.oskari.mybatis.JSONObjectMybatisTypeHandler;
@@ -38,7 +42,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Date;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.*;
@@ -51,13 +54,16 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
 
     private SqlSessionFactory factory;
 
-    private static OskariMapLayerGroupService oskariMapLayerGroupService = new OskariMapLayerGroupServiceIbatisImpl();
+    private OskariMapLayerGroupService oskariMapLayerGroupService;
+    private DataProviderService dataProviderService;
     private static OskariLayerService oskariLayerService = new OskariLayerServiceMybatisImpl();
     private UserService userService;
 
     private GeoserverClient geoserverClient;
 
-    protected PeltodataServiceMybatisImpl(UserService userService, GeoserverClient geoserverClient) throws ServiceException {
+    protected PeltodataServiceMybatisImpl(UserService userService, GeoserverClient geoserverClient,
+                                          OskariMapLayerGroupService oskariMapLayerGroupService,
+                                          DataProviderService dataProviderService) throws ServiceException {
         final DatasourceHelper helper = DatasourceHelper.getInstance();
         DataSource dataSource = helper.getDataSource();
         if (dataSource == null) {
@@ -69,10 +75,16 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         factory = initializeMyBatis(dataSource);
         this.userService = userService;
         this.geoserverClient = geoserverClient;
+        this.oskariMapLayerGroupService = oskariMapLayerGroupService;
+        this.dataProviderService = dataProviderService;
+    }
+
+    protected PeltodataServiceMybatisImpl(OskariMapLayerGroupService oskariMapLayerGroupService, DataProviderService dataProviderService) throws ServiceException {
+        this(UserService.getInstance(), new GeoserverClient(), oskariMapLayerGroupService, dataProviderService);
     }
 
     public PeltodataServiceMybatisImpl() throws ServiceException {
-        this(UserService.getInstance(), new GeoserverClient());
+        this(UserService.getInstance(), new GeoserverClient(), new OskariMapLayerGroupServiceIbatisImpl(), new DataProviderServiceMybatisImpl());
     }
 
     private SqlSessionFactory initializeMyBatis(final DataSource dataSource) {
@@ -224,6 +236,17 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         }
     }
 
+    protected Map<String,String> getLanguageNameMap() {
+        Set<String> languages = new HashSet<>();
+        languages.add(PropertyUtil.getDefaultLanguage());
+        languages.addAll(Arrays.asList(PropertyUtil.getSupportedLanguages()));
+        Map<String, String> names = new HashMap<>();
+        for (String language : languages) {
+            names.put(language, "");
+        }
+        return names;
+    }
+
     @Override
     public synchronized long insertFarmfield(final Farmfield farmfield) {
         LOG.debug("insert new farmfield");
@@ -241,6 +264,36 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
                 mapper.insertFarmFieldMapLayer(id, layer.getId());
             }
             session.commit();
+            // farmfield created ok, next check if group and dataprovider exists
+            User user = farmfield.getUser();
+            if (user == null) {
+                Long userId = farmfield.getUserId();
+                user = userService.getUser(userId);
+                farmfield.setUser(user);
+            }
+            // check if dataprovider / a.k.a. organization exists
+            String userLoginName = user.getScreenname();
+            DataProvider userProvider = dataProviderService.findByName(userLoginName);
+            if (userProvider == null) {
+                Map<String, String> names = getLanguageNameMap();
+                for (String language : names.keySet()) {
+                    names.put(language, userLoginName);
+                }
+                DataProvider dataProvider = new DataProvider();
+                dataProvider.setNames(names);
+                dataProviderService.insert(dataProvider);
+            }
+            // create group / a.k.a. theme always when new farm is created
+            String farmfieldDescription = farmfield.getDescription();
+            MaplayerGroup group = new MaplayerGroup();
+            Map<String, String> names = getLanguageNameMap();
+            for (String language : names.keySet()) {
+                names.put(language, farmfieldDescription);
+            }
+            group.setNames(names);
+            group.setParentId(-1);
+            group.setSelectable(true);
+            oskariMapLayerGroupService.insert(group);
         } catch (Exception e) {
             throw new RuntimeException("Failed to insert", e);
         } finally {
