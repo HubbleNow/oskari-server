@@ -133,6 +133,10 @@
             <version>25.1-jre</version>
         </dependency>
         <dependency>
+            <groupId>fi.nls.oskari</groupId>
+            <artifactId>content-resources</artifactId>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
@@ -150,11 +154,6 @@
         <dependency>
             <groupId>fi.nls.oskari</groupId>
             <artifactId>shared-test-resources</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>fi.nls.oskari</groupId>
-            <artifactId>content-resources</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
