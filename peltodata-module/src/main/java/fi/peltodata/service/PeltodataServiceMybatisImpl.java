@@ -56,20 +56,19 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         this(UserService.getInstance(), new GeoserverClient(), new OskariMapLayerGroupServiceIbatisImpl(), new DataProviderServiceMybatisImpl());
     }
 
-    protected PeltodataServiceMybatisImpl(UserService userService, GeoserverClient geoserverClient,
+    private PeltodataServiceMybatisImpl(UserService userService, GeoserverClient geoserverClient,
                                           OskariMapLayerGroupService oskariMapLayerGroupService,
                                           DataProviderService dataProviderService) throws ServiceException {
         this.oskariMapLayerGroupService = oskariMapLayerGroupService;
         this.dataProviderService = dataProviderService;
         this.userService = userService;
+        PeltodataRepository peltodataRepository = new PeltodataRepositoryImpl(userService, new OskariLayerServiceMybatisImpl());
+        this.peltodataRepository = peltodataRepository;
+        executor = Executors.newFixedThreadPool(3);
     }
 
     protected PeltodataServiceMybatisImpl(OskariMapLayerGroupService oskariMapLayerGroupService, DataProviderService dataProviderService) throws ServiceException {
         this(UserService.getInstance(), new GeoserverClient(), oskariMapLayerGroupService, dataProviderService);
-        UserService userService = UserService.getInstance();
-        PeltodataRepository peltodataRepository = new PeltodataRepositoryImpl(userService, new OskariLayerServiceMybatisImpl());
-        this.peltodataRepository = peltodataRepository;
-        executor = Executors.newFixedThreadPool(3);
         geoserverClient = new GeoserverClient();
     }
 
