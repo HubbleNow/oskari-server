@@ -46,10 +46,9 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     private PeltodataRepository peltodataRepository;
     private OskariMapLayerGroupService oskariMapLayerGroupService;
     private DataProviderService dataProviderService;
-    private static OskariLayerService oskariLayerService = new OskariLayerServiceMybatisImpl();
+    private OskariLayerService oskariLayerService;
     private Executor executor;
     private UserService userService;
-
     private GeoserverClient geoserverClient;
 
     public PeltodataServiceMybatisImpl() throws ServiceException {
@@ -59,17 +58,17 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     private PeltodataServiceMybatisImpl(UserService userService, GeoserverClient geoserverClient,
                                           OskariMapLayerGroupService oskariMapLayerGroupService,
                                           DataProviderService dataProviderService) throws ServiceException {
+        this.executor = Executors.newFixedThreadPool(3);
+        this.oskariLayerService =  new OskariLayerServiceMybatisImpl();
+        this.geoserverClient = geoserverClient;
         this.oskariMapLayerGroupService = oskariMapLayerGroupService;
         this.dataProviderService = dataProviderService;
         this.userService = userService;
-        PeltodataRepository peltodataRepository = new PeltodataRepositoryImpl(userService, new OskariLayerServiceMybatisImpl());
-        this.peltodataRepository = peltodataRepository;
-        executor = Executors.newFixedThreadPool(3);
+        this.peltodataRepository =  new PeltodataRepositoryImpl(userService, new OskariLayerServiceMybatisImpl());
     }
 
     protected PeltodataServiceMybatisImpl(OskariMapLayerGroupService oskariMapLayerGroupService, DataProviderService dataProviderService) throws ServiceException {
         this(UserService.getInstance(), new GeoserverClient(), oskariMapLayerGroupService, dataProviderService);
-        geoserverClient = new GeoserverClient();
     }
 
     @Override
