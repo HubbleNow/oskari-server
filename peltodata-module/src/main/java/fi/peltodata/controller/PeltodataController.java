@@ -80,27 +80,25 @@ public class PeltodataController {
                                                                @OskariParam ActionParameters params) {
         User user = params.getUser();
         boolean isGuest = user.isGuest();
+        Farmfield farmfield = new Farmfield();
+        farmfield.setSowingDate(requestData.getFarmfieldSowingDate());
+        farmfield.setCropType(requestData.getFarmfieldCropType());
+        farmfield.setDescription(requestData.getFarmfieldDescription());
+        farmfield.setFarmId(requestData.getFarmfieldId());
         if (isGuest) {
             return null;
         } else if (user.isAdmin()) {
-            Farmfield farmfield = new Farmfield();
             if (requestData.getUserId() != null) {
                 //admin can create behalf of
                 farmfield.setUserId(requestData.getUserId());
             } else {
                 farmfield.setUserId(user.getId());
             }
-            farmfield.setSowingDate(requestData.getFarmfieldSowingDate());
-            farmfield.setCropType(requestData.getFarmfieldCropType());
-            farmfield.setDescription(requestData.getFarmfieldDescription());
+
             peltodataService.insertFarmfield(farmfield);
             return new UserFarmfieldResponse(farmfield);
         } else {
             long userId = user.getId();
-            Farmfield farmfield = new Farmfield();
-            farmfield.setDescription(requestData.getFarmfieldDescription());
-            farmfield.setSowingDate(requestData.getFarmfieldSowingDate());
-            farmfield.setCropType(requestData.getFarmfieldCropType());
             farmfield.setUserId(userId);
             peltodataService.insertFarmfield(farmfield);
             return new UserFarmfieldResponse(farmfield);
@@ -113,33 +111,31 @@ public class PeltodataController {
                                                                @OskariParam ActionParameters params) {
         User user = params.getUser();
         boolean isGuest = user.isGuest();
+        Farmfield farmfield = new Farmfield();
+        farmfield.setId(farmFieldId);
+        farmfield.setDescription(requestData.getFarmfieldDescription());
+        farmfield.setSowingDate(requestData.getFarmfieldSowingDate());
+        farmfield.setCropType(requestData.getFarmfieldCropType());
+        farmfield.setFarmId(requestData.getFarmfieldId());
         if (isGuest) {
             return null;
         } else if (user.isAdmin()) {
-            Farmfield farmfield = new Farmfield();
-            farmfield.setId(farmFieldId);
+
             if (requestData.getUserId() != null) {
                 //admin can create behalf of
                 farmfield.setUserId(requestData.getUserId());
             } else {
                 farmfield.setUserId(user.getId());
             }
-            farmfield.setDescription(requestData.getFarmfieldDescription());
-            farmfield.setSowingDate(requestData.getFarmfieldSowingDate());
-            farmfield.setCropType(requestData.getFarmfieldCropType());
+
             peltodataService.updateFarmfield(farmfield);
             return new UserFarmfieldResponse(farmfield);
         } else {
             long userId = user.getId();
-            Farmfield farmfield = new Farmfield();
             boolean allowed = peltodataService.farmfieldBelongsToUser(farmFieldId, userId);
             if (!allowed) {
                 throw new AccessDeniedException("update not allowed");
             }
-            farmfield.setId(farmFieldId);
-            farmfield.setDescription(requestData.getFarmfieldDescription());
-            farmfield.setSowingDate(requestData.getFarmfieldSowingDate());
-            farmfield.setCropType(requestData.getFarmfieldCropType());
             farmfield.setUserId(userId);
             peltodataService.updateFarmfield(farmfield);
             return new UserFarmfieldResponse(farmfield);

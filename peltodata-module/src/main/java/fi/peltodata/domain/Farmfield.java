@@ -12,6 +12,7 @@ import java.util.Set;
 public class Farmfield implements Comparable<Farmfield> {
     private Long id;
     private String description;
+    private String farmId;
     private MaplayerGroup group;
     private User user;
     private Long userId;
@@ -95,5 +96,13 @@ public class Farmfield implements Comparable<Farmfield> {
             return 1;
         }
         else return this.getId().compareTo(o.id);
+    }
+
+    public String getFarmId() {
+        return farmId;
+    }
+
+    public void setFarmId(String farmId) {
+        this.farmId = farmId;
     }
 }

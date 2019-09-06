@@ -75,6 +75,7 @@ public class PeltodataRepositoryImpl implements PeltodataRepository {
         farmfield.setId(farmfieldId);
         farmfield.setDescription((String) data.get("description"));
         farmfield.setCropType((String) data.get("crop_type"));
+        farmfield.setFarmId((String) data.get("farm_id"));
         Date sqlDate = (Date) data.get("sowing_date");
         farmfield.setSowingDate(sqlDate.toLocalDate());
         try {

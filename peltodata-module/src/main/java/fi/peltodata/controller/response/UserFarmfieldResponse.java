@@ -13,6 +13,7 @@ public class UserFarmfieldResponse implements Serializable {
     private Long farmfieldId;
     private Long userId;
     private String farmfieldDescription;
+    private String farmfieldIdString;
     private String farmfieldCropType;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     @JsonFormat(pattern = "YYYY-MM-dd")
@@ -23,6 +24,7 @@ public class UserFarmfieldResponse implements Serializable {
 
     public UserFarmfieldResponse(Farmfield farmfield) {
         farmfieldId = farmfield.getId();
+        farmfieldIdString = farmfield.getFarmId();
         userId = farmfield.getUserId();
         farmfieldDescription = farmfield.getDescription();
         farmfieldSowingDate = farmfield.getSowingDate();
@@ -67,5 +69,13 @@ public class UserFarmfieldResponse implements Serializable {
 
     public void setFarmfieldSowingDate(LocalDate farmfieldSowingDate) {
         this.farmfieldSowingDate = farmfieldSowingDate;
+    }
+
+    public String getFarmfieldIdString() {
+        return farmfieldIdString;
+    }
+
+    public void setFarmfieldIdString(String farmfieldIdString) {
+        this.farmfieldIdString = farmfieldIdString;
     }
 }

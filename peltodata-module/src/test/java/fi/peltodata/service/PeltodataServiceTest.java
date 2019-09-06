@@ -83,6 +83,7 @@ public class PeltodataServiceTest {
         assertEquals(field.getDescription(), farmFieldForNewUser.getDescription());
         assertEquals(field.getCropType(), farmFieldForNewUser.getCropType());
         assertEquals(field.getSowingDate(), farmFieldForNewUser.getSowingDate());
+        assertEquals(field.getFarmId(), farmFieldForNewUser.getFarmId());
         assertNotNull(field.getUser().getScreenname());
         // OSKARI_MAPLAYER_GROUP does not exist see #init problems with migrate
 /*        assertNotNull(field.getUser().getScreenname());
@@ -120,6 +121,7 @@ public class PeltodataServiceTest {
 
         field.setDescription("Test field name2");
         field.setCropType("oat");
+        field.setFarmId("886-009-104-3");
         field.setSowingDate(LocalDate.of(2019, 6, 1));
         field.setUser(newUser);
 
@@ -127,6 +129,7 @@ public class PeltodataServiceTest {
         Farmfield updatedField = peltodataService.findFarmfield(field.getId());
         assertEquals("Test field name2", updatedField.getDescription());
         assertEquals("oat", updatedField.getCropType());
+        assertEquals("886-009-104-3", updatedField.getFarmId());
         assertEquals(LocalDate.of(2019,6,1), updatedField.getSowingDate());
         assertNotNull(updatedField.getUser().getScreenname());
     }
@@ -146,6 +149,7 @@ public class PeltodataServiceTest {
         farmfield.setDescription("Mäkelänvainio " + i);
         farmfield.setUser(user);
         farmfield.setCropType("rye");
+        farmfield.setFarmId("609-034-788-" + i);
         farmfield.setSowingDate(LocalDate.of(2019, 4, 1));
 
         peltodataService.insertFarmfield(farmfield);

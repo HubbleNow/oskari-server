@@ -5,6 +5,7 @@ import java.time.LocalDate;
 public class UserFarmfieldCreateRequest {
     private String farmfieldDescription;
     private Long userId;//optional for admin only
+    private String farmfieldId;
     private LocalDate farmfieldSowingDate;
     private String farmfieldCropType;
 
@@ -38,5 +39,13 @@ public class UserFarmfieldCreateRequest {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public String getFarmfieldId() {
+        return farmfieldId;
+    }
+
+    public void setFarmfieldId(String farmfieldId) {
+        this.farmfieldId = farmfieldId;
     }
 }

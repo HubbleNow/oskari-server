@@ -5,11 +5,6 @@
 
 <mapper namespace="fi.peltodata.domain.FarmfieldMapper">
 
-    <resultMap id="FarmfieldData" type="Farmfield">
-        <result property="id" column="id" />
-        <result property="description" column="description" />
-        <result property="userId" column="userId" />
-    </resultMap>
     <select id="findFarmField" resultType="map" parameterType="map">
         select pf.* from peltodata_field pf where pf.id = #{farmfieldId}
     </select>
@@ -27,12 +22,14 @@
             description,
             sowing_date,
             crop_type,
+            farm_id,
             user_id
         )
         VALUES (
             #{description},
             #{sowingDate},
             #{cropType},
+            #{farmId},
             #{userId}
         )
     </insert>
@@ -42,8 +39,9 @@
             description = #{description},
             user_id = #{userId},
             sowing_date = #{sowingDate},
-            crop_type = #{cropType}
-        WHERE id = #{id}
+            crop_type = #{cropType},
+            farm_id = #{farmId}
+            WHERE id = #{id}
     </update>
 
     <insert id="insertFarmFieldMapLayer" parameterType="map">
