@@ -5,16 +5,19 @@ import java.util.HashSet;
 import java.util.Set;
 
 public enum FarmfieldFileDataType {
+    CROP_ESTIMATION_ORIGINAL_DATA (
+            10, Types.CROP_ESTIMATION_ORIGINAL_ID, "tiff", Types.CROP_ESTIMATION_RAW_ID, Types.CROP_ESTIMATION_ID),
     CROP_ESTIMATION_RAW_DATA(
-            10, Types.CROP_ESTIMATION_RAW_ID, "tiff", Types.CROP_ESTIMATION_RAW_ID, Types.CROP_ESTIMATION_ID),
+            11, Types.CROP_ESTIMATION_RAW_ID, "tiff", Types.CROP_ESTIMATION_RAW_ID),
     CROP_ESTIMATION_DATA(
-            11, Types.CROP_ESTIMATION_ID, "tiff", Types.CROP_ESTIMATION_ID),
+            12, Types.CROP_ESTIMATION_ID, "tiff", Types.CROP_ESTIMATION_ID),
     YIELD_RAW_DATA(
             20, Types.YIELD_RAW_ID, "tiff", Types.YIELD_ID),
     YIELD_DATA(
             21, Types.YIELD_ID, "tiff", Types.YIELD_ID);
 
     public static class Types {
+        private static String CROP_ESTIMATION_ORIGINAL_ID = "crop_estimation_original";
         private static String CROP_ESTIMATION_RAW_ID = "crop_estimation_raw";
         private static String CROP_ESTIMATION_ID = "crop_estimation";
         private static String YIELD_RAW_ID = "yield_raw";

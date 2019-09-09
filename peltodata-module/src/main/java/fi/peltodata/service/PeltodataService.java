@@ -1,6 +1,5 @@
 package fi.peltodata.service;
 
-import fi.nls.oskari.service.ServiceException;
 import fi.peltodata.domain.Farmfield;
 import fi.peltodata.domain.FarmfieldExecution;
 import fi.peltodata.domain.FarmfieldFileDataType;
@@ -25,7 +24,7 @@ public interface PeltodataService {
 
     void createFarmfieldLayer(long farmfieldId, String inputFilepath,
                               FarmfieldFileDataType inputDataType, FarmfieldFileDataType outputDataType);
-    String createFarmfieldGeoserverLayer(Farmfield farmfield, Path absolutePath);
+    String createFarmfieldGeoserverLayer(Farmfield farmfield, Path absolutePath, String outputType);
 
     List<FarmfieldExecution> findAllFarmfieldExecutionsForUser(Long userId);
 
@@ -36,4 +35,6 @@ public interface PeltodataService {
     void farmfieldExecutionCompleted(FarmfieldExecution execution);
 
     void farmfieldExecutionFailed(FarmfieldExecution execution);
+
+    String getInputFilename(FarmfieldFileDataType dataType);
 }

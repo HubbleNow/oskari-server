@@ -42,7 +42,7 @@ public abstract class ExecutionTask implements Runnable {
             throw new RuntimeException("Failed to copy file", e);
         }
 
-        peltodataService.createFarmfieldGeoserverLayer(farmfield, outputFilePath);
+        peltodataService.createFarmfieldGeoserverLayer(farmfield, outputFilePath, outputType);
     }
 
     public PeltodataService getPeltodataService() {

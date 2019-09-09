@@ -206,7 +206,7 @@ public class PeltodataController {
                 return null;
             }
             //for now timestamp from upload moment
-            String filename = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + "." + dataType.getDataFormat();
+            String filename = peltodataService.getInputFilename(dataType);
             String filePathString = null;
             try (InputStream in = file.getInputStream()){
                 filePathString = peltodataService.uploadLayerData(farmFieldId, in, dataType, filename);
