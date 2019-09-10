@@ -17,7 +17,6 @@ import fi.nls.oskari.service.OskariComponent;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.UserService;
 import fi.nls.oskari.util.PropertyUtil;
-import fi.peltodata.config.PeltodataConfig;
 import fi.peltodata.domain.Farmfield;
 import fi.peltodata.domain.FarmfieldExecution;
 import fi.peltodata.domain.FarmfieldFileDataType;
@@ -26,13 +25,13 @@ import fi.peltodata.geoserver.GeoserverException;
 import fi.peltodata.repository.PeltodataRepository;
 import fi.peltodata.repository.PeltodataRepositoryImpl;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.time.format.DateTimeFormatter;
@@ -123,20 +122,19 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
                 farmfield.setUser(user);
             }
             // check if dataprovider / a.k.a. organization exists
-            String userLoginName = user.getScreenname();
-            DataProvider userProvider = dataProviderService.findByName(userLoginName);
-            if (userProvider == null) {
-                Map<String, String> names = getLanguageNameMap();
-                for (String language : names.keySet()) {
-                    names.put(language, userLoginName);
-                }
-                DataProvider dataProvider = new DataProvider();
-                dataProvider.setNames(names);
-                dataProviderService.insert(dataProvider);
-            }
+            ensureDataProviderForUser(user);
+
             // create group / a.k.a. theme always when new farm is created
-            String farmfieldDescription = farmfield.getDescription();
-            MaplayerGroup group = new MaplayerGroup();
+        ensureGroupForField(farmfield);
+        return farmfieldId;
+    }
+
+    private MaplayerGroup ensureGroupForField(Farmfield farmfield) {
+        String farmfieldDescription = farmfield.getDescription();
+
+        MaplayerGroup group = oskariMapLayerGroupService.findByName(farmfieldDescription);
+        if (group == null) {
+            group = new MaplayerGroup();
             Map<String, String> names = getLanguageNameMap();
             for (String language : names.keySet()) {
                 names.put(language, farmfieldDescription);
@@ -145,7 +143,24 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
             group.setParentId(-1);
             group.setSelectable(true);
             oskariMapLayerGroupService.insert(group);
-            return farmfieldId;
+        }
+        return group;
+    }
+
+    private DataProvider ensureDataProviderForUser(User user) {
+        String userLoginName = user.getScreenname();
+        DataProvider userProvider = dataProviderService.findByName(userLoginName);
+        if (userProvider == null) {
+            Map<String, String> names = getLanguageNameMap();
+            for (String language : names.keySet()) {
+                names.put(language, userLoginName);
+            }
+            DataProvider dataProvider = new DataProvider();
+            dataProvider.setNames(names);
+            dataProviderService.insert(dataProvider);
+            return dataProvider;
+        }
+        return userProvider;
     }
 
     @Override
@@ -201,16 +216,16 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
 
     @Override
     public void createFarmfieldLayer(long farmfieldId, String inputFilepath,
-                                     FarmfieldFileDataType inputDataType, FarmfieldFileDataType outputDataType) {
+                                     FarmfieldFileDataType inputDataType, FarmfieldFileDataType outputDataType, User user) {
         LOG.info("createFarmfieldLayer id={} inputfile={} inputtype={} outputtype={}",
                 farmfieldId, inputFilepath, inputDataType.toString(), outputDataType.toString());
         Path fullPath = FileService.getFullPathForInputFile(inputFilepath);
         Farmfield farmfield = findFarmfield(farmfieldId);
 
-        startAsyncFarmfieldLayerConversionCreation(farmfield, fullPath, outputDataType);
+        startAsyncFarmfieldLayerConversionCreation(farmfield, fullPath, outputDataType, user);
     }
 
-    protected void startAsyncFarmfieldLayerConversionCreation(Farmfield farmfield, Path inputFilepath, FarmfieldFileDataType outputDataType) {
+    protected void startAsyncFarmfieldLayerConversionCreation(Farmfield farmfield, Path inputFilepath, FarmfieldFileDataType outputDataType, User user) {
         Path outputFilePath = getOutputFilePath(inputFilepath, outputDataType);
         try {
             Files.createDirectories(outputFilePath.getParent());
@@ -222,17 +237,17 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
 
         switch (outputDataType) {
             case CROP_ESTIMATION_RAW_DATA:
-                RawConversionTask conversionTask = new RawConversionTask(this, farmfield, inputFilepath, outputFilePath, outputDataType.getTypeId());
+                RawConversionTask conversionTask = new RawConversionTask(this, farmfield, inputFilepath, outputFilePath, outputDataType, user);
                 executor.execute(conversionTask);
                 break;
             case CROP_ESTIMATION_DATA:
-                CropEstimationTask cropEstimationTask = new CropEstimationTask(this, farmfield, inputFilepath, outputFilePath, outputDataType.getTypeId());
+                CropEstimationTask cropEstimationTask = new CropEstimationTask(this, farmfield, inputFilepath, outputFilePath, outputDataType, user);
                 executor.execute(cropEstimationTask);
                 break;
             case YIELD_RAW_DATA:
                 break;
             case YIELD_DATA:
-                YieldImageTask yieldImageTask = new YieldImageTask(this, farmfield, inputFilepath, outputFilePath, outputDataType.getTypeId());
+                YieldImageTask yieldImageTask = new YieldImageTask(this, farmfield, inputFilepath, outputFilePath, outputDataType, user);
                 executor.execute(yieldImageTask);
                 break;
         }
@@ -266,8 +281,8 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         }
 
         try {
-            geoserverClient.saveTiffAsDatastore(mapLayerName, absolutePath);
-            return mapLayerName;
+            String createdLayerName = geoserverClient.saveTiffAsDatastore(mapLayerName, absolutePath);
+            return createdLayerName;
         } catch (GeoserverException e) {
             throw new RuntimeException(e);
         }
@@ -311,6 +326,44 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     @Override
     public String getInputFilename(FarmfieldFileDataType dataType) {
         return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + "__" + dataType.getFolderName() + "." + dataType.getDataFormat();
+    }
+
+    @Override
+    public void addWMSLayerFromGeoserver(Farmfield farmfield, String layerName, FarmfieldFileDataType dataType, User user) {
+        PeltodataOskariLayerService peltodataOskariLayerService = new PeltodataOskariLayerServiceImpl();
+
+        LOG.info("finding provider for user " + user.getScreenname());
+        DataProvider dataProvider = ensureDataProviderForUser(user);
+        LOG.info("finding group for field " + farmfield.getDescription());
+        MaplayerGroup maplayerGroup = ensureGroupForField(farmfield);
+
+        LOG.info("add wmslayer from geoserver", layerName);
+
+        try {
+            User adminUser = userService.getUser("admin");
+            // Set layer description to "12.09.2019 - <TYPE>"
+            String layerDescription = String.format("%s - %s", new SimpleDateFormat("dd.MM.YYYY").format(new Date()), convertTypeToFinnishDescription(dataType));
+            peltodataOskariLayerService.addWMSLayerFromGeoserver(layerDescription, maplayerGroup.getId(), dataProvider.getId(), layerName, geoserverClient.getWMSBaseUrl(), adminUser);
+        } catch (ServiceException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    private String convertTypeToFinnishDescription(FarmfieldFileDataType dataType) {
+        switch (dataType) {
+            case CROP_ESTIMATION_ORIGINAL_DATA:
+            case CROP_ESTIMATION_RAW_DATA:
+                return "Alkuperäinen";
+            case CROP_ESTIMATION_DATA:
+                return "Satoennuste";
+            case YIELD_RAW_DATA:
+                return "";
+            case YIELD_DATA:
+                return "Satokartta";
+        }
+
+        throw new RuntimeException("Missing datatype translation for " + dataType.getTypeId());
     }
 
     private String getCleanedUpDescription(Farmfield farmfield) {

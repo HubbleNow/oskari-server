@@ -1,0 +1,77 @@
+package fi.peltodata;
+
+public class ActionParamsConstants {
+    public static final String PARAM_LAYER_ID = "layer_id";
+    public static final String PARAM_LAYER_NAME = "layerName";
+    public static final String PARAM_LAYER_URL = "layerUrl";
+    public static final String PARAM_SRS_NAME = "srs_name";
+    public static final String PARAM_MAPLAYER_GROUPS = "maplayerGroups";
+    public static final String PARAM_VIEW_PERMISSIONS = "viewPermissions";
+    public static final String PARAM_PUBLISH_PERMISSIONS = "publishPermissions";
+    public static final String PARAM_DOWNLOAD_PERMISSIONS = "downloadPermissions";
+    public static final String PARAM_EMBEDDED_PERMISSIONS = "embeddedPermissions";
+    public static final String PARAM_LAYER_TYPE ="layerType";
+    public static final String PARAM_PARENT_ID ="parentId";
+    public static final String PARAM_GROUP_ID ="groupId";
+    public static final String PARAM_VERSION ="version";
+    public static final String PARAM_IS_BASE ="isBase";
+    public static final String PARAM_OPACITY ="opacity";
+    public static final String PARAM_STYLE ="style";
+    public static final String PARAM_MIN_SCALE ="minScale";
+    public static final String PARAM_MAX_SCALE ="maxScale";
+    public static final String PARAM_LEGEND_IMAGE ="legendImage";
+    public static final String PARAM_METADATA_ID ="metadataId";
+    public static final String PARAM_GFI_CONTENT ="gfiContent";
+    public static final String PARAM_USERNAME ="username";
+    public static final String PARAM_PASSWORD ="password";
+    public static final String PARAM_CAPABILITIES_UPDATE_RATE_SEC ="capabilitiesUpdateRateSec";
+    public static final String PARAM_ATTRIBUTES ="attributes";
+    public static final String PARAM_PARAMS ="params";
+    public static final String PARAM_OPTIONS ="options";
+    public static final String PARAM_REALTIME ="realtime";
+    public static final String PARAM_REFRESH_RATE ="refreshRate";
+    public static final String PARAM_GML2_SEPARATOR = "GML2Separator";
+    public static final String PARAM_GML_GEOMETRY_PROPERTY = "GMLGeometryProperty";
+    public static final String PARAM_GML_VERSION = "GMLVersion";
+    public static final String PARAM_WFS_VERSION = "WFSVersion";
+    public static final String PARAM_FEATURE_ELEMENT = "featureElement";
+    public static final String PARAM_FEATURE_NAMESPACE = "featureNamespace";
+    public static final String PARAM_FEATURE_NAMESCAPE_URI = "featureNamespaceURI";
+    public static final String PARAM_FEATURE_PARAMS_LOCALES = "featureParamsLocales";
+    public static final String PARAM_FEATURE_TYPE = "featureType";
+    public static final String PARAM_GEOMETRY_NAMESPACE_URI = "geometryNamespaceURI";
+    public static final String PARAM_GEOMETRY_TYPE = "geometryType";
+    public static final String PARAM_GET_FEATURE_INFO = "getFeatureInfo";
+    public static final String PARAM_GET_HIGHLIGHT_IMAGE = "getHighlightImage";
+    public static final String PARAM_GET_MAP_TILES = "getMapTiles";
+    public static final String PARAM_MAX_FEATURES = "maxFeatures";
+    public static final String PARAM_OUTPUT_FORMAT = "outputFormat";
+    public static final String PARAM_SELECTED_FEATURE_PARAMS = "selectedFeatureParams";
+    public static final String PARAM_TILE_BUFFER = "tileBuffer";
+    public static final String PARAM_TILE_REQUEST = "tileRequest";
+    public static final String PARAM_JOB_TYPE = "jobType";
+    public static final String PARAM_REQUEST_TEMPLATE = "requestTemplate";
+    public static final String PARAM_RESPONSE_TEMPLATE = "responseTemplate";
+    public static final String PARAM_PARSE_CONFIG = "parseConfig";
+    public static final String PARAM_TEMPLATE_NAME = "templateName";
+    public static final String PARAM_TEMPLATE_TYPE = "templateType";
+    public static final String PARAM_STYLE_SELECTION = "styleSelection";
+    public static final String PARAM_XSLT = "xslt";
+    public static final String PARAM_GFI_TYPE = "gfiType";
+    public static final String PARAM_MANUAL_REFRESH = "manualRefresh";
+    public static final String PARAM_RESOLVE_DEPTH = "resolveDepth";
+
+    public static final String LAYER_NAME_PREFIX = "name_";
+    public static final String LAYER_TITLE_PREFIX = "title_";
+
+    public static final String ERROR_UPDATE_OR_INSERT_FAILED = "update_or_insert_failed";
+    public static final String ERROR_NO_LAYER_WITH_ID = "no_layer_with_id:";
+    public static final String ERROR_OPERATION_NOT_PERMITTED = "operation_not_permitted_for_layer_id:";
+    public static final String ERROR_MANDATORY_FIELD_MISSING = "mandatory_field_missing:";
+    public static final String ERROR_INVALID_FIELD_VALUE = "invalid_field_value:";
+    public static final String ERROR_FE_PARSER_CONFIG_MISSING = "FE WFS feature parser config missing";
+
+    public static final String OSKARI_FEATURE_ENGINE = "oskari-feature-engine";
+    public static final String WFS1_1_0_VERSION = "1.1.0";
+    public static final String WFS3_0_0_VERSION = "3.0.0";
+}

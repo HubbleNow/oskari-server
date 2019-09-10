@@ -13,9 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 /**
  * A wrapper class for request/response that is populated before giving to ActionHandlers.
@@ -172,7 +170,7 @@ public class ActionParameters {
         if(msg == null) {
             return getRequiredParam(key);
         }
-        final String value = RequestHelper.cleanString(getRequest().getParameter(key));
+        final String value = getHttpParam(key);
         if(value == null || value.isEmpty()) {
             throw new ActionParamsException(msg);
         }
@@ -247,6 +245,10 @@ public class ActionParameters {
      */
     public String getHttpHeader(final String key) {
         return getRequest().getHeader(key);
+    }
+
+    public Enumeration<String> getHttpParamNames() {
+        return getRequest().getParameterNames();
     }
 
     /**

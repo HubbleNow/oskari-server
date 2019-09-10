@@ -51,9 +51,25 @@ import static fi.nls.oskari.control.ActionConstants.PARAM_SRS;
 @OskariActionRoute("SaveLayer")
 public class SaveLayerHandler extends RestActionHandler {
 
-    private class SaveResult {
+    public static class SaveResult {
         long layerId = -1;
         boolean capabilitiesUpdated = false;
+
+        public long getLayerId() {
+            return layerId;
+        }
+
+        public void setLayerId(long layerId) {
+            this.layerId = layerId;
+        }
+
+        public boolean isCapabilitiesUpdated() {
+            return capabilitiesUpdated;
+        }
+
+        public void setCapabilitiesUpdated(boolean capabilitiesUpdated) {
+            this.capabilitiesUpdated = capabilitiesUpdated;
+        }
     }
 
     private OskariLayerService mapLayerService = ServiceFactory.getMapLayerService();
@@ -172,7 +188,7 @@ public class SaveLayerHandler extends RestActionHandler {
         ResponseHelper.writeResponse(params, layerJSON);
     }
 
-    private SaveResult saveLayer(final ActionParameters params) throws ActionException {
+    public SaveResult saveLayer(final ActionParameters params) throws ActionException {
 
         // layer_id can be string -> external id!
         final int layer_id = params.getHttpParam(PARAM_LAYER_ID, -1);
@@ -340,8 +356,6 @@ public class SaveLayerHandler extends RestActionHandler {
 
     private boolean handleRequestToMapLayer(final ActionParameters params, OskariLayer ml) throws ActionException {
 
-        HttpServletRequest request = params.getRequest();
-
         if(ml.getId() == -1) {
             // setup type and parent for new layers only
             ml.setType(params.getHttpParam(PARAM_LAYER_TYPE));
@@ -353,7 +367,7 @@ public class SaveLayerHandler extends RestActionHandler {
         ml.addDataprovider(dataProvider);
 
         // get names and descriptions
-        final Enumeration<String> paramNames = request.getParameterNames();
+        final Enumeration<String> paramNames = params.getHttpParamNames();
         while (paramNames.hasMoreElements()) {
             String paramName = paramNames.nextElement();
             if (paramName.startsWith(LAYER_NAME_PREFIX)) {
@@ -390,7 +404,7 @@ public class SaveLayerHandler extends RestActionHandler {
         ml.setLegendImage(params.getHttpParam(PARAM_LEGEND_IMAGE, ml.getLegendImage()));
         ml.setMetadataId(params.getHttpParam(PARAM_METADATA_ID, ml.getMetadataId()));
 
-        final String gfiContent = request.getParameter(PARAM_GFI_CONTENT);
+        final String gfiContent = params.getHttpParam(PARAM_GFI_CONTENT);
         if (gfiContent != null) {
             // Clean GFI content
             final String[] tags = PropertyUtil.getCommaSeparatedList("gficontent.whitelist");
@@ -582,8 +596,7 @@ public class SaveLayerHandler extends RestActionHandler {
 
     private boolean handleWMSSpecific(final ActionParameters params, OskariLayer ml, Set<String> systemCRSs) {
         // Do NOT modify the 'xslt' parameter
-        HttpServletRequest request = params.getRequest();
-        final String xslt = request.getParameter(PARAM_XSLT);
+        final String xslt = params.getHttpParam(PARAM_XSLT);
         if(xslt != null) {
             // TODO: some validation of XSLT data
             ml.setGfiXslt(xslt);

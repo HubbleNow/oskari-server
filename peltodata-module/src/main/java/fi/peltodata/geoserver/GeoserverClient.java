@@ -3,6 +3,7 @@ package fi.peltodata.geoserver;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.util.PropertyUtil;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.utils.URIBuilder;
@@ -13,13 +14,10 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 public class GeoserverClient {
     private static final Logger LOG = LogFactory.getLogger(GeoserverClient.class);
@@ -29,12 +27,12 @@ public class GeoserverClient {
     private static final String PROP_GS_PASS = "geoserver.password";
     private static final String PROP_GS_PELTODATA_WS_NAME = "geoserver.peltodata.workspace";//"raster" in prod
 
-    public void saveTiffAsDatastore(String datastoreName, Path tiffFile) throws GeoserverException {
+    public String saveTiffAsDatastore(String datastoreName, Path tiffFile) throws GeoserverException {
         LOG.info("saveTiffAsDatastore ds={} file={}", datastoreName, tiffFile.toString());
-        saveTiffAsDatastore(getDefaultWorkspaceName(), datastoreName, tiffFile, true);
+        return saveTiffAsDatastore(getDefaultWorkspaceName(), datastoreName, tiffFile, true);
     }
 
-    public void saveTiffAsDatastore(String workspace, String datastoreName, Path tiffFile, boolean useExistingFile) throws GeoserverException {
+    public String saveTiffAsDatastore(String workspace, String datastoreName, Path tiffFile, boolean useExistingFile) throws GeoserverException {
         if (!Files.exists(tiffFile)) {
             throw new IllegalArgumentException("file does not exist " + tiffFile.toString());
         }
@@ -78,6 +76,7 @@ public class GeoserverClient {
             put.setEntity(stringEntity);
             CloseableHttpResponse response = client.execute(put);
             LOG.info("response from geoserver " + response);
+            return String.format("%s:%s", workspace, FilenameUtils.getBaseName(tiffFile.toString()));
         } catch (IOException e) {
             throw new GeoserverException(e);
         }
