@@ -93,10 +93,23 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
 
     @Override
     public void updateFarmfield(final Farmfield farmfield) {
+        Farmfield originalFarmfield = peltodataRepository.findFarmfield(farmfield.getId());
+        if (!originalFarmfield.getDescription().equals(farmfield.getDescription())) {
+            MaplayerGroup group = oskariMapLayerGroupService.findByName(originalFarmfield.getDescription());
+            if (group != null) {
+                Map<String, String> names = getLanguageNameMap();
+                for (String language : names.keySet()) {
+                    names.put(language, farmfield.getDescription());
+                }
+                group.setNames(names);
+                oskariMapLayerGroupService.update(group);
+            }
+        }
+
         peltodataRepository.updateFarmfield(farmfield);
     }
 
-    protected Map<String,String> getLanguageNameMap() {
+    private Map<String,String> getLanguageNameMap() {
         Set<String> languages = new HashSet<>();
         languages.add(PropertyUtil.getDefaultLanguage());
         languages.addAll(Arrays.asList(PropertyUtil.getSupportedLanguages()));

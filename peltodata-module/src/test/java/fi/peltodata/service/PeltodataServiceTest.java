@@ -7,6 +7,7 @@ import fi.nls.oskari.db.FlywaydbMigrator;
 import fi.nls.oskari.domain.Role;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.DataProvider;
+import fi.nls.oskari.domain.map.MaplayerGroup;
 import fi.nls.oskari.domain.map.OskariLayer;
 import fi.nls.oskari.map.layer.DataProviderService;
 import fi.nls.oskari.map.layer.OskariLayerService;
@@ -114,6 +115,7 @@ public class PeltodataServiceTest {
     public void testUpdate() throws ServiceException, JSONException {
         Farmfield farmFieldForNewUser = createFarmFieldForNewUser();
         Farmfield field = peltodataService.findFarmfield(farmFieldForNewUser.getId());
+
         User user = new User();
         user.setScreenname("new user 123");
         user.addRole(Role.getDefaultUserRole());
@@ -132,6 +134,23 @@ public class PeltodataServiceTest {
         assertEquals("886-009-104-3", updatedField.getFarmId());
         assertEquals(LocalDate.of(2019,6,1), updatedField.getSowingDate());
         assertNotNull(updatedField.getUser().getScreenname());
+    }
+
+    // Does not actually work because there is no real db and it is mocked
+    public void updateAlsoUpdatesMapLayerGroupName() throws ServiceException, JSONException {
+        Farmfield farmFieldForNewUser = createFarmFieldForNewUser();
+        Farmfield field = peltodataService.findFarmfield(farmFieldForNewUser.getId());
+
+        MaplayerGroup group = oskariMapLayerGroupService.findByName(field.getDescription());
+        List<MaplayerGroup> groups = oskariMapLayerGroupService.findAll();
+        assertNotNull(group);
+        assertEquals(group.getName("fi"), field.getDescription());
+
+        field.setDescription("Test field name2");
+
+        peltodataService.updateFarmfield(field);
+        group = oskariMapLayerGroupService.find(group.getId());
+        assertEquals(group.getName("fi"), "Test field name2");
     }
 
     private Farmfield createFarmFieldForUser(long userId) throws ServiceException, JSONException {
