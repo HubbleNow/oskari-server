@@ -72,7 +72,7 @@ public class GeoserverClient {
         }
 
         try (CloseableHttpClient client = HttpClients.createDefault()) {
-            StringEntity stringEntity = new StringEntity("file:/" + tiffFile.toString(), ContentType.TEXT_PLAIN);
+            StringEntity stringEntity = new StringEntity("file:" + tiffFile.toString(), ContentType.TEXT_PLAIN);
             put.setEntity(stringEntity);
             CloseableHttpResponse response = client.execute(put);
             LOG.info("response from geoserver " + response);

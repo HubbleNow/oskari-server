@@ -37,6 +37,8 @@ public class RawConversionTask extends ExecutionTask {
                     this.getInputFilePath().toString(), this.getOutputFilePath().toString());
         }
 
+        LOG.info("executing command ", defaultCommand);
+
         // Otherwise command can be configured in props
         return PropertyUtil.get(PROP_GDAL_COMMAND, defaultCommand);
     }
