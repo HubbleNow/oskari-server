@@ -9,6 +9,16 @@ public class FarmfieldExecution {
     private String outputType;
     private Date executionStartedAt;
     private long farmfieldId;
+    private long farmfieldFileId;
+    private String outputFilename;
+
+    public long getFarmfieldFileId() {
+        return farmfieldFileId;
+    }
+
+    public void setFarmfieldFileId(long farmfieldFileId) {
+        this.farmfieldFileId = farmfieldFileId;
+    }
 
     public long getId() {
         return id;
@@ -48,5 +58,13 @@ public class FarmfieldExecution {
 
     public void setFarmfieldId(long farmfieldId) {
         this.farmfieldId = farmfieldId;
+    }
+
+    public String getOutputFilename() {
+        return outputFilename;
+    }
+
+    public void setOutputFilename(String outputFilename) {
+        this.outputFilename = outputFilename;
     }
 }

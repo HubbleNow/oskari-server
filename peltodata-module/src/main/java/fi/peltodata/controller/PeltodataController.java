@@ -5,11 +5,13 @@ import fi.nls.oskari.domain.User;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.spring.extension.OskariParam;
+import fi.peltodata.controller.request.FarmfieldFileDateUpdateRequest;
 import fi.peltodata.controller.request.UserFarmfieldCreateRequest;
 import fi.peltodata.controller.request.UserFarmfieldUpdateRequest;
 import fi.peltodata.controller.response.UserFarmfieldResponse;
 import fi.peltodata.domain.Farmfield;
 import fi.peltodata.domain.FarmfieldExecution;
+import fi.peltodata.domain.FarmfieldFile;
 import fi.peltodata.domain.FarmfieldFileDataType;
 import fi.peltodata.service.PeltodataService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,18 +23,13 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Controller
@@ -184,7 +181,7 @@ public class PeltodataController {
 
     @RequestMapping(value = "farms/{id}/file", method = RequestMethod.POST, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseBody
-    public String uploadFarmfieldLayerDataFile(@PathVariable("id") Long farmFieldId,
+    public FarmfieldFile uploadFarmfieldLayerDataFile(@PathVariable("id") Long farmFieldId,
                                                @RequestParam(value = "type", required = true) String type,
                                                @RequestPart("file") MultipartFile file,
                                                @OskariParam ActionParameters params,
@@ -207,14 +204,10 @@ public class PeltodataController {
             }
             //for now timestamp from upload moment
             String filename = peltodataService.getInputFilename(dataType);
-            String filePathString = null;
             try (InputStream in = file.getInputStream()){
-                filePathString = peltodataService.uploadLayerData(farmFieldId, in, dataType, filename);
+                FarmfieldFile farmfieldFile = peltodataService.uploadLayerData(farmFieldId, in, dataType, file.getOriginalFilename(), filename);
+                return farmfieldFile;
             }
-            if (filePathString == null) {
-                response.setStatus(HttpStatus.BAD_REQUEST.value());
-            }
-            return filePathString;
         }
     }
 
@@ -240,7 +233,7 @@ public class PeltodataController {
     @ResponseBody
     public String createFarmfieldOskariLayer(@PathVariable("id") Long farmFieldId,
                                              @OskariParam ActionParameters params,
-                                             @RequestParam(value = "filename", required = true) String inputFilename,
+                                             @RequestParam(value = "file_id", required = true) Long fileId,
                                              @RequestParam(value = "type", required = false) String outputType,
                                              HttpServletResponse response) {
         User user = params.getUser();
@@ -249,16 +242,25 @@ public class PeltodataController {
             throw new AccessDeniedException("files fetch not allowed");
         } else {
             long userId = user.getId();
-            boolean allowed = peltodataService.farmfieldBelongsToUser(farmFieldId, userId);
-            if (!allowed && !user.isAdmin() || (inputFilename != null && inputFilename.contains(".."))) {
-                LOG.error("files fetch not allowed farmFieldId {}, filename {}", new Object[] { farmFieldId, inputFilename });
+            boolean allowed = peltodataService.farmfieldBelongsToUser(farmFieldId, userId) && peltodataService.farmfieldFileBelongsToFarmAndUser(fileId, farmFieldId, user);
+            if (!allowed && !user.isAdmin()) {
+                LOG.error("files fetch not allowed farmFieldId {}, filename {}", new Object[] { farmFieldId });
                 throw new AccessDeniedException("files fetch not allowed");
             }
+
+            FarmfieldFile farmfieldFile = peltodataService.findFarmfieldFile(fileId);
+            if (farmfieldFile == null) {
+                response.setStatus(HttpStatus.BAD_REQUEST.value());
+                LOG.error("invalid farmfieldFileId {}", new Object[] { fileId });
+                throw new RuntimeException("invalid farmfieldFileId");
+            }
+
             FarmfieldFileDataType outputDataType;
-            FarmfieldFileDataType inputDataType = FarmfieldFileDataType.fromPathString(inputFilename);
+            FarmfieldFileDataType inputDataType = FarmfieldFileDataType.fromPathString(farmfieldFile.getFullPath());
+
             if (inputDataType == null) {
                 response.setStatus(HttpStatus.BAD_REQUEST.value());
-                LOG.error("inputDataType was not specified, perhaps no folder in filename??. Given filename {}", new Object[] { inputFilename });
+                LOG.error("inputDataType was not specified, perhaps no folder in filename??. Given filename {}", new Object[] { farmfieldFile.getFullPath() });
                 throw new RuntimeException("inputDataType was not specified");
             }
             if (outputType == null) {
@@ -273,19 +275,8 @@ public class PeltodataController {
                     throw new RuntimeException("outputDataType was not allowed");
                 }
             }
-            List<String> allFarmfieldFiles = peltodataService.findAllFarmfieldFiles(farmFieldId);
-            Optional<String> match = allFarmfieldFiles.stream().filter(f -> Paths.get(inputFilename).toString().equals(f)).findFirst();
-            if (!match.isPresent() || outputDataType == null) {
-                response.setStatus(HttpStatus.BAD_REQUEST.value());
-                LOG.error("outputDataType null or no existing file found. inputFilename {}, outputDataType == null {}", new Object[] { inputFilename, outputDataType == null });
-                throw new RuntimeException("outputDataType null or no existing file found");
-            } else {
-                String inputFilenamePath = match.get();
-                //TODO: rename to createGeoserverLayer
-                peltodataService.createFarmfieldLayer(farmFieldId, inputFilenamePath, inputDataType, outputDataType, user);
-                return "";
-                //TODO: consider oskarilayer savehandler call in addition???
-            }
+            peltodataService.createFarmfieldLayer(farmFieldId, farmfieldFile.getId(), inputDataType, outputDataType, user);
+            return "";
         }
     }
 
@@ -293,7 +284,7 @@ public class PeltodataController {
     @ResponseBody
     public List<String> getFarmfieldLayerFileDataTypes() {
         return EnumSet.allOf(FarmfieldFileDataType.class)
-                .stream().sorted().map(t -> t.getTypeId()).collect(Collectors.toList());
+                .stream().sorted().map(FarmfieldFileDataType::getTypeId).collect(Collectors.toList());
     }
 
     @RequestMapping(value = "farms/executions", method = RequestMethod.GET)
@@ -306,5 +297,33 @@ public class PeltodataController {
             return peltodataService.findAllFarmfieldExecutions();
         }
         return peltodataService.findAllFarmfieldExecutionsForUser(user.getId());
+    }
+
+
+    @RequestMapping(value = "farms/{farmId}/file/{fileId}", method = RequestMethod.POST)
+    @ResponseBody
+    public String updateFileDate(@PathVariable("farmId") Long farmFieldId,
+                                   @PathVariable("fileId") Long farmfieldFileId,
+                                   @RequestBody FarmfieldFileDateUpdateRequest requestData,
+                                   @OskariParam ActionParameters params) {
+        User user = params.getUser();
+        boolean isGuest = user.isGuest();
+        if (isGuest) {
+            return null;
+        }
+
+        boolean allowed = peltodataService.farmfieldFileBelongsToFarmAndUser(farmfieldFileId, farmFieldId, user);
+        if (!allowed && !user.isAdmin()) {
+            LOG.error("updateFileDAte not allowed for user {}, farmid={}, fileid={}", new Object[] { user.getScreenname(), farmFieldId, farmfieldFileId });
+            throw new RuntimeException("operation not allowed");
+        }
+
+        Farmfield farmfield = peltodataService.findFarmfield(farmFieldId);
+        FarmfieldFile file = peltodataService.findFarmfieldFile(farmfieldFileId);
+
+        file.setFileDate(requestData.getDate());
+        peltodataService.updateFarmfieldFile(file);
+
+        return "";
     }
 }

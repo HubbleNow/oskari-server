@@ -19,6 +19,7 @@ import fi.nls.oskari.service.UserService;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.peltodata.domain.Farmfield;
 import fi.peltodata.domain.FarmfieldExecution;
+import fi.peltodata.domain.FarmfieldFile;
 import fi.peltodata.domain.FarmfieldFileDataType;
 import fi.peltodata.geoserver.GeoserverClient;
 import fi.peltodata.geoserver.GeoserverException;
@@ -209,58 +210,70 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public String uploadLayerData(long farmfieldId, InputStream inputStream, FarmfieldFileDataType dataType, String filename) {
+    public FarmfieldFile uploadLayerData(long farmfieldId, InputStream inputStream, FarmfieldFileDataType dataType, String originalFilename, String filename) {
         int year = Year.now().getValue();
         String uploadPath = FileService.getUploadPath(year, farmfieldId, dataType);
         String filePathString = uploadPath + filename;
         LOG.info("about upload file : " + filePathString);
         boolean success = false;
         Path newFile = Paths.get(filePathString);
-        LOG.info("full path " + FileSystems.getDefault().getPath(newFile.toString()).normalize().toAbsolutePath());
+        String fullPath = FileSystems.getDefault().getPath(newFile.toString()).normalize().toAbsolutePath().toString();
+        LOG.info("full path " + fullPath);
         try {
             Files.createDirectories(newFile.getParent());
             Files.copy(inputStream, newFile);
-            success = true;
+            FarmfieldFile farmfieldFile = new FarmfieldFile();
+            farmfieldFile.setFarmfieldId(farmfieldId);
+            farmfieldFile.setFileDate(new Date());
+            farmfieldFile.setOriginalFilename(originalFilename);
+            farmfieldFile.setFullPath(fullPath);
+            farmfieldFile.setType(dataType.getTypeId());
+            long id = peltodataRepository.insertFarmfieldFile(farmfieldFile);
+            return peltodataRepository.findFarmfieldFile(id);
         } catch (IOException e) {
             LOG.error(e, "Error occured while writing file: " + filePathString);
+            throw new RuntimeException(e);
         }
-        return success ? FileService.getRelativeFarmfieldFilePath(newFile) : null;
     }
 
     @Override
-    public void createFarmfieldLayer(long farmfieldId, String inputFilepath,
+    public void createFarmfieldLayer(long farmfieldId, long farmfieldFileId,
                                      FarmfieldFileDataType inputDataType, FarmfieldFileDataType outputDataType, User user) {
         LOG.info("createFarmfieldLayer id={} inputfile={} inputtype={} outputtype={}",
-                farmfieldId, inputFilepath, inputDataType.toString(), outputDataType.toString());
-        Path fullPath = FileService.getFullPathForInputFile(inputFilepath);
+                farmfieldId, farmfieldFileId, inputDataType.toString(), outputDataType.toString());
+        FarmfieldFile farmfieldFile = peltodataRepository.findFarmfieldFile(farmfieldFileId);
         Farmfield farmfield = findFarmfield(farmfieldId);
 
-        startAsyncFarmfieldLayerConversionCreation(farmfield, fullPath, outputDataType, user);
+        if (farmfieldId != farmfieldFile.getFarmfieldId()) {
+            throw new RuntimeException("invalid farmfield for file");
+        }
+
+        startAsyncFarmfieldLayerConversionCreation(farmfield, farmfieldFile, outputDataType, user);
     }
 
-    protected void startAsyncFarmfieldLayerConversionCreation(Farmfield farmfield, Path inputFilepath, FarmfieldFileDataType outputDataType, User user) {
-        Path outputFilePath = getOutputFilePath(inputFilepath, outputDataType);
+    protected void startAsyncFarmfieldLayerConversionCreation(Farmfield farmfield, FarmfieldFile farmfieldFile, FarmfieldFileDataType outputDataType, User user) {
+        Path outputFilePath = getOutputFilePath(Paths.get(farmfieldFile.getFullPath()), outputDataType);
         try {
             Files.createDirectories(outputFilePath.getParent());
         } catch (IOException e) {
             throw new RuntimeException("Failed to create output directory" + outputFilePath.getParent().toString(), e);
         }
 
-        LOG.info("Starting async conversion of {} to {} type={}", inputFilepath.toString(), outputFilePath.toString(), outputDataType.toString());
+        LOG.info("Starting async conversion of {} to {} type={}", farmfieldFile.getFullPath(), outputFilePath.toString(), outputDataType.toString());
 
         switch (outputDataType) {
             case CROP_ESTIMATION_RAW_DATA:
-                RawConversionTask conversionTask = new RawConversionTask(this, farmfield, inputFilepath, outputFilePath, outputDataType, user);
+                RawConversionTask conversionTask = new RawConversionTask(this, farmfield, farmfieldFile, outputFilePath, outputDataType, user);
                 executor.execute(conversionTask);
                 break;
             case CROP_ESTIMATION_DATA:
-                CropEstimationTask cropEstimationTask = new CropEstimationTask(this, farmfield, inputFilepath, outputFilePath, outputDataType, user);
+                CropEstimationTask cropEstimationTask = new CropEstimationTask(this, farmfield, farmfieldFile, outputFilePath, outputDataType, user);
                 executor.execute(cropEstimationTask);
                 break;
             case YIELD_RAW_DATA:
                 break;
             case YIELD_DATA:
-                YieldImageTask yieldImageTask = new YieldImageTask(this, farmfield, inputFilepath, outputFilePath, outputDataType, user);
+                YieldImageTask yieldImageTask = new YieldImageTask(this, farmfield, farmfieldFile, outputFilePath, outputDataType, user);
                 executor.execute(yieldImageTask);
                 break;
         }
@@ -315,11 +328,13 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public FarmfieldExecution farmfieldExecutionStarted(Farmfield farmfield, String outputType) {
+    public FarmfieldExecution farmfieldExecutionStarted(FarmfieldFile farmfieldFile, Path outputFilePath, String outputType) {
         FarmfieldExecution execution = new FarmfieldExecution();
         execution.setState(0);
         execution.setOutputType(outputType);
-        execution.setFarmfieldId(farmfield.getId());
+        execution.setFarmfieldId(farmfieldFile.getFarmfieldId());
+        execution.setOutputFilename(outputFilePath.toString());
+        execution.setFarmfieldFileId(farmfieldFile.getId());
         peltodataRepository.insertFarmfieldExecution(execution);
         return peltodataRepository.findFarmfieldExecution(execution.getId());
     }
@@ -342,7 +357,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public void addWMSLayerFromGeoserver(Farmfield farmfield, String layerName, FarmfieldFileDataType dataType, User user) {
+    public void addWMSLayerFromGeoserver(Farmfield farmfield, FarmfieldFile farmfieldFile, String layerName, FarmfieldFileDataType dataType, User user) {
         PeltodataOskariLayerService peltodataOskariLayerService = new PeltodataOskariLayerServiceImpl();
 
         LOG.info("finding provider for user " + user.getScreenname());
@@ -355,12 +370,29 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         try {
             User adminUser = userService.getUser("admin");
             // Set layer description to "12.09.2019 - <TYPE>"
-            String layerDescription = String.format("%s - %s", new SimpleDateFormat("dd.MM.YYYY").format(new Date()), convertTypeToFinnishDescription(dataType));
+            String layerDescription = String.format("%s - %s", new SimpleDateFormat("dd.MM.YYYY").format(farmfieldFile.getFileDate()), convertTypeToFinnishDescription(dataType));
             peltodataOskariLayerService.addWMSLayerFromGeoserver(layerDescription, maplayerGroup.getId(), dataProvider.getId(), layerName, geoserverClient.getWMSBaseUrl(), adminUser);
         } catch (ServiceException e) {
             throw new RuntimeException(e);
         }
 
+    }
+
+    @Override
+    public boolean farmfieldFileBelongsToFarmAndUser(Long fileId, Long farmFieldId, User user) {
+        Farmfield farmfield = peltodataRepository.findFarmfield(farmFieldId);
+        FarmfieldFile file = peltodataRepository.findFarmfieldFile(fileId);
+        return file.getFarmfieldId() == farmfield.getId() && user.getId() == farmfield.getUserId();
+    }
+
+    @Override
+    public FarmfieldFile findFarmfieldFile(Long fileId) {
+        return peltodataRepository.findFarmfieldFile(fileId);
+    }
+
+    @Override
+    public void updateFarmfieldFile(FarmfieldFile file) {
+        peltodataRepository.updateFarmfieldFile(file);
     }
 
     private String convertTypeToFinnishDescription(FarmfieldFileDataType dataType) {

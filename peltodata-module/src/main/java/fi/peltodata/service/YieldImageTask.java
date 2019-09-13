@@ -3,6 +3,7 @@ package fi.peltodata.service;
 import com.google.common.io.Resources;
 import fi.nls.oskari.domain.User;
 import fi.peltodata.domain.Farmfield;
+import fi.peltodata.domain.FarmfieldFile;
 import fi.peltodata.domain.FarmfieldFileDataType;
 
 import java.io.IOException;
@@ -12,8 +13,8 @@ import java.nio.file.Path;
 
 public class YieldImageTask extends ExecutionTask {
 
-    public YieldImageTask(PeltodataService peltodataService, Farmfield farmfield, Path inputFilepath, Path outputFilePath, FarmfieldFileDataType outputType, User user) {
-        super(peltodataService, farmfield, inputFilepath, outputFilePath, outputType, user);
+    public YieldImageTask(PeltodataService peltodataService, Farmfield farmfield, FarmfieldFile farmfieldFile, Path outputFilePath, FarmfieldFileDataType outputType, User user) {
+        super(peltodataService, farmfield, farmfieldFile, outputFilePath, outputType, user);
     }
 
     @Override

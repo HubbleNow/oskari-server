@@ -9,10 +9,7 @@ import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.mybatis.JSONObjectMybatisTypeHandler;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.UserService;
-import fi.peltodata.domain.Farmfield;
-import fi.peltodata.domain.FarmfieldExecution;
-import fi.peltodata.domain.FarmfieldExecutionMapper;
-import fi.peltodata.domain.FarmfieldMapper;
+import fi.peltodata.domain.*;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
@@ -56,6 +53,7 @@ public class PeltodataRepositoryImpl implements PeltodataRepository {
         configuration.getTypeHandlerRegistry().register(JSONObjectMybatisTypeHandler.class);
         configuration.addMapper(FarmfieldMapper.class);
         configuration.addMapper(FarmfieldExecutionMapper.class);
+        configuration.addMapper(FarmfieldFileMapper.class);
 
         return new SqlSessionFactoryBuilder().build(configuration);
     }
@@ -256,6 +254,33 @@ public class PeltodataRepositoryImpl implements PeltodataRepository {
         try (final SqlSession session = factory.openSession()) {
             final FarmfieldExecutionMapper mapper = session.getMapper(FarmfieldExecutionMapper.class);
             return mapper.findFarmfieldById(id);
+        }
+    }
+
+    @Override
+    public long insertFarmfieldFile(FarmfieldFile farmfieldFile) {
+        try (final SqlSession session = factory.openSession()) {
+            final FarmfieldFileMapper mapper = session.getMapper(FarmfieldFileMapper.class);
+            mapper.insertFarmfieldFile(farmfieldFile);
+            session.commit();
+            return farmfieldFile.getId();
+        }
+    }
+
+    @Override
+    public FarmfieldFile findFarmfieldFile(long id) {
+        try (final SqlSession session = factory.openSession()) {
+            final FarmfieldFileMapper mapper = session.getMapper(FarmfieldFileMapper.class);
+            return mapper.findFarmfieldFileById(id);
+        }
+    }
+
+    @Override
+    public void updateFarmfieldFile(FarmfieldFile file) {
+        try (final SqlSession session = factory.openSession()) {
+            final FarmfieldFileMapper mapper = session.getMapper(FarmfieldFileMapper.class);
+            mapper.udpateFarmfieldFile(file);
+            session.commit();
         }
     }
 }

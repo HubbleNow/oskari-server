@@ -3,6 +3,7 @@ package fi.peltodata.service;
 import fi.nls.oskari.domain.User;
 import fi.peltodata.domain.Farmfield;
 import fi.peltodata.domain.FarmfieldExecution;
+import fi.peltodata.domain.FarmfieldFile;
 import fi.peltodata.domain.FarmfieldFileDataType;
 
 import java.io.InputStream;
@@ -19,11 +20,11 @@ public interface PeltodataService {
     void deleteFarmfield(final long layerId);
     void deleteFarmfield(Farmfield farmfield);
 
-    String uploadLayerData(long farmfieldId, InputStream inputStream, FarmfieldFileDataType dataType, String filename);
+    FarmfieldFile uploadLayerData(long farmfieldId, InputStream inputStream, FarmfieldFileDataType dataType, String originalFilename, String filename);
     boolean fileExists(long farmfieldId, FarmfieldFileDataType dataType, String filename);
     List<String> findAllFarmfieldFiles(long farmfieldId);
 
-    void createFarmfieldLayer(long farmfieldId, String inputFilepath,
+    void createFarmfieldLayer(long farmfieldId, long farmfieldFileId,
                               FarmfieldFileDataType inputDataType, FarmfieldFileDataType outputDataType, User user);
     String createFarmfieldGeoserverLayer(Farmfield farmfield, Path absolutePath, String outputType);
 
@@ -31,7 +32,7 @@ public interface PeltodataService {
 
     List<FarmfieldExecution> findAllFarmfieldExecutions();
 
-    FarmfieldExecution farmfieldExecutionStarted(Farmfield farmfield, String outputType);
+    FarmfieldExecution farmfieldExecutionStarted(FarmfieldFile farmfieldFile, Path outputFilePath, String outputType);
 
     void farmfieldExecutionCompleted(FarmfieldExecution execution);
 
@@ -39,5 +40,11 @@ public interface PeltodataService {
 
     String getInputFilename(FarmfieldFileDataType dataType);
 
-    void addWMSLayerFromGeoserver(Farmfield farmfield, String layerName, FarmfieldFileDataType outputType, User user);
+    void addWMSLayerFromGeoserver(Farmfield farmfield, FarmfieldFile farmfieldFile, String layerName, FarmfieldFileDataType outputType, User user);
+
+    boolean farmfieldFileBelongsToFarmAndUser(Long fileId, Long farmFieldId, User user);
+
+    FarmfieldFile findFarmfieldFile(Long fileId);
+
+    void updateFarmfieldFile(FarmfieldFile file);
 }

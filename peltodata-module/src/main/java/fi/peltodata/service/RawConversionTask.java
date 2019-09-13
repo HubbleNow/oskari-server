@@ -5,6 +5,7 @@ import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.peltodata.domain.Farmfield;
+import fi.peltodata.domain.FarmfieldFile;
 import fi.peltodata.domain.FarmfieldFileDataType;
 
 import java.io.BufferedReader;
@@ -19,10 +20,9 @@ public class RawConversionTask extends ExecutionTask {
     private static final Logger LOG = LogFactory.getLogger(RawConversionTask.class);
     private static final String PROP_GDAL_COMMAND = "peltodata.gdal.convert_raw";
 
-    public RawConversionTask(PeltodataService peltodataService, Farmfield farmfield, Path inputFilepath, Path outputFilePath, FarmfieldFileDataType outputType, User user) {
-        super(peltodataService, farmfield, inputFilepath, outputFilePath, outputType, user);
+    public RawConversionTask(PeltodataService peltodataService, Farmfield farmfield, FarmfieldFile farmfieldFile, Path outputFilePath, FarmfieldFileDataType outputType, User user) {
+        super(peltodataService, farmfield, farmfieldFile, outputFilePath, outputType, user);
     }
-
 
     private String getCommand() {
         String defaultCommand;

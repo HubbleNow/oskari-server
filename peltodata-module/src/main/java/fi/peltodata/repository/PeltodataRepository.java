@@ -2,6 +2,7 @@ package fi.peltodata.repository;
 
 import fi.peltodata.domain.Farmfield;
 import fi.peltodata.domain.FarmfieldExecution;
+import fi.peltodata.domain.FarmfieldFile;
 
 import java.util.List;
 
@@ -23,4 +24,10 @@ public interface PeltodataRepository {
     void updateFarmfieldExecution(FarmfieldExecution execution);
 
     FarmfieldExecution findFarmfieldExecution(long id);
+
+    long insertFarmfieldFile(FarmfieldFile farmfieldFile);
+
+    FarmfieldFile findFarmfieldFile(long id);
+
+    void updateFarmfieldFile(FarmfieldFile file);
 }

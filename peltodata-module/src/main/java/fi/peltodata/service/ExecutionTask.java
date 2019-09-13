@@ -5,10 +5,12 @@ import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.peltodata.domain.Farmfield;
 import fi.peltodata.domain.FarmfieldExecution;
+import fi.peltodata.domain.FarmfieldFile;
 import fi.peltodata.domain.FarmfieldFileDataType;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public abstract class ExecutionTask implements Runnable {
     private static final Logger LOG = LogFactory.getLogger(CropEstimationTask.class);
@@ -16,15 +18,15 @@ public abstract class ExecutionTask implements Runnable {
     private PeltodataService peltodataService;
     private PeltodataOskariLayerService peltodataOskariLayerService;
     private Farmfield farmfield;
-    private Path inputFilePath;
+    private FarmfieldFile farmfieldFile;
     private Path outputFilePath;
     private FarmfieldFileDataType outputType;
     private User user;
 
-    public ExecutionTask(PeltodataService peltodataService, Farmfield farmfield, Path inputFilepath, Path outputFilePath, FarmfieldFileDataType outputType, User user) {
+    public ExecutionTask(PeltodataService peltodataService, Farmfield farmfield, FarmfieldFile farmfieldFile, Path outputFilePath, FarmfieldFileDataType outputType, User user) {
         this.peltodataService = peltodataService;
         this.farmfield = farmfield;
-        this.inputFilePath = inputFilepath;
+        this.farmfieldFile = farmfieldFile;
         this.outputFilePath = outputFilePath;
         this.outputType = outputType;
         this.user = user;
@@ -35,9 +37,9 @@ public abstract class ExecutionTask implements Runnable {
 
     @Override
     public void run() {
-        LOG.info("Starting execution " + inputFilePath + " " + outputFilePath);
+        LOG.info("Starting execution " + farmfieldFile.getFullPath() + " " + outputFilePath);
 
-        FarmfieldExecution execution = getPeltodataService().farmfieldExecutionStarted(farmfield, outputType.getTypeId());
+        FarmfieldExecution execution = getPeltodataService().farmfieldExecutionStarted(farmfieldFile, outputFilePath, outputType.getTypeId());
         try {
             createOutput();
             getPeltodataService().farmfieldExecutionCompleted(execution);
@@ -50,7 +52,7 @@ public abstract class ExecutionTask implements Runnable {
 
         try {
             String layerName = peltodataService.createFarmfieldGeoserverLayer(farmfield, outputFilePath, outputType.getTypeId());
-            peltodataService.addWMSLayerFromGeoserver(farmfield, layerName, outputType, user);
+            peltodataService.addWMSLayerFromGeoserver(farmfield, farmfieldFile, layerName, outputType, user);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -65,7 +67,7 @@ public abstract class ExecutionTask implements Runnable {
     }
 
     public Path getInputFilePath() {
-        return inputFilePath;
+        return Paths.get(farmfieldFile.getFullPath());
     }
 
     public Path getOutputFilePath() {
