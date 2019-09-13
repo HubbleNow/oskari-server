@@ -1,5 +1,6 @@
 package fi.peltodata.domain;
 
+import java.time.LocalDate;
 import java.util.Date;
 
 public class FarmfieldFile {
@@ -9,7 +10,7 @@ public class FarmfieldFile {
     private String fullPath;
 
     // For example picture taken date
-    private Date fileDate;
+    private LocalDate fileDate;
     private String type;
 
 
@@ -45,11 +46,11 @@ public class FarmfieldFile {
         this.fullPath = fullPath;
     }
 
-    public Date getFileDate() {
+    public LocalDate getFileDate() {
         return fileDate;
     }
 
-    public void setFileDate(Date fileDate) {
+    public void setFileDate(LocalDate fileDate) {
         this.fileDate = fileDate;
     }
 

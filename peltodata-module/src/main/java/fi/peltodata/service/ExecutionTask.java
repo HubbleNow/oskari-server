@@ -13,7 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public abstract class ExecutionTask implements Runnable {
-    private static final Logger LOG = LogFactory.getLogger(CropEstimationTask.class);
+    private static final Logger LOG = LogFactory.getLogger(ExecutionTask.class);
 
     private PeltodataService peltodataService;
     private PeltodataOskariLayerService peltodataOskariLayerService;
@@ -72,5 +72,9 @@ public abstract class ExecutionTask implements Runnable {
 
     public Path getOutputFilePath() {
         return outputFilePath;
+    }
+
+    public FarmfieldFile getFarmfieldFile() {
+        return farmfieldFile;
     }
 }

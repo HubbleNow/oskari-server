@@ -19,6 +19,7 @@ import org.springframework.web.multipart.commons.CommonsMultipartResolver;
 public class PeltodataConfig {
 
     public static String PROP_UPLOAD_ROOT_DIR_PATH = "peltodata.upload.root.dir";
+    public static String PROP_UPLOAD_JSON_DIR_PATH = "peltodata.json.dir";
 
     @Bean
     public PeltodataService peltodataService() throws ServiceException {

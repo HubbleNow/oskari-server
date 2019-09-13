@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.time.format.DateTimeFormatter;
@@ -57,15 +58,15 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     private PeltodataServiceMybatisImpl(UserService userService, GeoserverClient geoserverClient,
-                                          OskariMapLayerGroupService oskariMapLayerGroupService,
-                                          DataProviderService dataProviderService) throws ServiceException {
+                                        OskariMapLayerGroupService oskariMapLayerGroupService,
+                                        DataProviderService dataProviderService) throws ServiceException {
         this.executor = Executors.newFixedThreadPool(3);
-        this.oskariLayerService =  new OskariLayerServiceMybatisImpl();
+        this.oskariLayerService = new OskariLayerServiceMybatisImpl();
         this.geoserverClient = geoserverClient;
         this.oskariMapLayerGroupService = oskariMapLayerGroupService;
         this.dataProviderService = dataProviderService;
         this.userService = userService;
-        this.peltodataRepository =  new PeltodataRepositoryImpl(userService, new OskariLayerServiceMybatisImpl());
+        this.peltodataRepository = new PeltodataRepositoryImpl(userService, new OskariLayerServiceMybatisImpl());
     }
 
     protected PeltodataServiceMybatisImpl(OskariMapLayerGroupService oskariMapLayerGroupService, DataProviderService dataProviderService) throws ServiceException {
@@ -110,7 +111,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         peltodataRepository.updateFarmfield(farmfield);
     }
 
-    private Map<String,String> getLanguageNameMap() {
+    private Map<String, String> getLanguageNameMap() {
         Set<String> languages = new HashSet<>();
         languages.add(PropertyUtil.getDefaultLanguage());
         languages.addAll(Arrays.asList(PropertyUtil.getSupportedLanguages()));
@@ -125,20 +126,20 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     public synchronized long insertFarmfield(final Farmfield farmfield) {
         long farmfieldId = peltodataRepository.insertFarmfield(farmfield);
         // farmfield created ok, next check if group and dataprovider exists
-            User user = farmfield.getUser();
-            if (user == null) {
-                Long userId = farmfield.getUserId();
-                try {
-                    user = userService.getUser(userId);
-                } catch (ServiceException e) {
-                    throw new RuntimeException("Farm created but failed get user", e);
-                }
-                farmfield.setUser(user);
+        User user = farmfield.getUser();
+        if (user == null) {
+            Long userId = farmfield.getUserId();
+            try {
+                user = userService.getUser(userId);
+            } catch (ServiceException e) {
+                throw new RuntimeException("Farm created but failed get user", e);
             }
-            // check if dataprovider / a.k.a. organization exists
-            ensureDataProviderForUser(user);
+            farmfield.setUser(user);
+        }
+        // check if dataprovider / a.k.a. organization exists
+        ensureDataProviderForUser(user);
 
-            // create group / a.k.a. theme always when new farm is created
+        // create group / a.k.a. theme always when new farm is created
         ensureGroupForField(farmfield);
         return farmfieldId;
     }
@@ -224,7 +225,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
             Files.copy(inputStream, newFile);
             FarmfieldFile farmfieldFile = new FarmfieldFile();
             farmfieldFile.setFarmfieldId(farmfieldId);
-            farmfieldFile.setFileDate(new Date());
+            farmfieldFile.setFileDate(LocalDate.now());
             farmfieldFile.setOriginalFilename(originalFilename);
             farmfieldFile.setFullPath(fullPath);
             farmfieldFile.setType(dataType.getTypeId());
@@ -267,13 +268,15 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
                 executor.execute(conversionTask);
                 break;
             case CROP_ESTIMATION_DATA:
-                CropEstimationTask cropEstimationTask = new CropEstimationTask(this, farmfield, farmfieldFile, outputFilePath, outputDataType, user);
+                PythonExecutionTask cropEstimationTask = new PythonExecutionTask(this, farmfield,
+                        farmfieldFile, outputFilePath, outputDataType, user, "peltodata.scripts.crop_estimation");
                 executor.execute(cropEstimationTask);
                 break;
             case YIELD_RAW_DATA:
                 break;
             case YIELD_DATA:
-                YieldImageTask yieldImageTask = new YieldImageTask(this, farmfield, farmfieldFile, outputFilePath, outputDataType, user);
+                PythonExecutionTask yieldImageTask = new PythonExecutionTask(this, farmfield, farmfieldFile,
+                        outputFilePath, outputDataType, user, "peltodata.scripts.yield");
                 executor.execute(yieldImageTask);
                 break;
         }
@@ -281,6 +284,7 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
 
     /**
      * Returns absolute and full path where output file should be stored
+     *
      * @param inputFilepath
      * @return
      */
@@ -375,7 +379,6 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         } catch (ServiceException e) {
             throw new RuntimeException(e);
         }
-
     }
 
     @Override
