@@ -33,7 +33,7 @@ public class RawConversionTask extends ExecutionTask {
                     this.getInputFilePath().toString(), this.getOutputFilePath().toString());
         } else {
             // Linux expects only gdal-bin ofc
-            defaultCommand = String.format("gdal_translate -co NBITS=8 -co COMPRESS=JPEG -co TILED=yes \"%s\" \"%s\" -ot Byte -scale -a_nodata 0",
+            defaultCommand = String.format("gdal_translate -co NBITS=8 -co COMPRESS=JPEG -co TILED=yes %s %s -ot Byte -scale -a_nodata 0",
                     this.getInputFilePath().toString(), this.getOutputFilePath().toString());
         }
 
