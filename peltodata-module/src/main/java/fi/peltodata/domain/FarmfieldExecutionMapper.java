@@ -35,6 +35,16 @@ public interface FarmfieldExecutionMapper {
     })
     FarmfieldExecution findFarmfieldById(long id);
 
+    @Select("select id, state, execution_started_at, field_id, output_type, output_filename, field_file_id from peltodata_field_execution where field_id = #{farmfieldId}")
+    @Results({
+            @Result(property = "executionStartedAt", column = "execution_started_at"),
+            @Result(property = "outputType", column = "output_type"),
+            @Result(property = "farmfieldId", column = "field_id"),
+            @Result(property = "farmfieldFileId", column = "field_file_id"),
+            @Result(property = "outputFilename", column = "output_filename")
+    })
+    List<FarmfieldExecution> findAllFarmFieldExecutionsForFarm(long farmfieldId);
+
     @Insert("INSERT INTO peltodata_field_execution (state, field_id, output_type, output_filename, field_file_id) " +
             "VALUES (#{state}, #{farmfieldId}, #{outputType}, #{outputFilename}, #{farmfieldFileId})")
     @Options(useGeneratedKeys=true)

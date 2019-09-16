@@ -23,14 +23,16 @@
             sowing_date,
             crop_type,
             farm_id,
-            user_id
+            user_id,
+            maplayergroup_id
         )
         VALUES (
             #{description},
             #{sowingDate},
             #{cropType},
             #{farmId},
-            #{userId}
+            #{userId},
+            #{mapLayerGroupId}
         )
     </insert>
 
@@ -40,7 +42,8 @@
             user_id = #{userId},
             sowing_date = #{sowingDate},
             crop_type = #{cropType},
-            farm_id = #{farmId}
+            farm_id = #{farmId},
+            maplayergroup_id = #{mapLayerGroupId}
             WHERE id = #{id}
     </update>
 
@@ -59,7 +62,7 @@
         delete from peltodata_field where id = #{id}
     </delete>
 
-    <select id="findFarmLayers" parameterType="Long" resultType="list">
+    <select id="findFarmLayers" parameterType="Long" resultType="Integer">
         select layer_id from peltodata_field_layer where field_id = #{farmfieldId}
     </select>
 

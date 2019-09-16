@@ -163,7 +163,7 @@ public class PeltodataController {
     }
 
     @RequestMapping(value = "farms/{id}", method = RequestMethod.DELETE)
-    @ResponseStatus(value = HttpStatus.OK)
+    @ResponseBody
     public void deleteFarmfield(@PathVariable("id") Long farmFieldId, @OskariParam ActionParameters params) {
         User user = params.getUser();
         boolean isGuest = user.isGuest();

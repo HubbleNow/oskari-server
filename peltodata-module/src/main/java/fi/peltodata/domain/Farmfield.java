@@ -13,12 +13,12 @@ public class Farmfield implements Comparable<Farmfield> {
     private Long id;
     private String description;
     private String farmId;
-    private MaplayerGroup group;
     private User user;
     private Long userId;
     private String cropType;
     private LocalDate sowingDate;
     private Set<OskariLayer> layers = new HashSet<>();
+    private Integer mapLayerGroupId;
 
     public Long getId() {
         return id;
@@ -34,14 +34,6 @@ public class Farmfield implements Comparable<Farmfield> {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public MaplayerGroup getGroup() {
-        return group;
-    }
-
-    public void setGroup(MaplayerGroup group) {
-        this.group = group;
     }
 
     public Set<OskariLayer> getLayers() {
@@ -104,5 +96,13 @@ public class Farmfield implements Comparable<Farmfield> {
 
     public void setFarmId(String farmId) {
         this.farmId = farmId;
+    }
+
+    public Integer getMapLayerGroupId() {
+        return mapLayerGroupId;
+    }
+
+    public void setMapLayerGroupId(Integer mapLayerGroupId) {
+        this.mapLayerGroupId = mapLayerGroupId;
     }
 }

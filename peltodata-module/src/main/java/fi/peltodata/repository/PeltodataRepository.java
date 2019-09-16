@@ -30,4 +30,8 @@ public interface PeltodataRepository {
     FarmfieldFile findFarmfieldFile(long id);
 
     void updateFarmfieldFile(FarmfieldFile file);
+
+    void insertFarmFieldLayer(Long farmfieldId, int oskariLayerId);
+
+    void deleteFarmfieldFilesForField(long farmfieldId);
 }

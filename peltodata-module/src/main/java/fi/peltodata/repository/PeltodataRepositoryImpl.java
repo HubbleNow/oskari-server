@@ -74,6 +74,7 @@ public class PeltodataRepositoryImpl implements PeltodataRepository {
         farmfield.setDescription((String) data.get("description"));
         farmfield.setCropType((String) data.get("crop_type"));
         farmfield.setFarmId((String) data.get("farm_id"));
+        farmfield.setMapLayerGroupId((Integer) data.get("maplayergroup_id"));
         Date sqlDate = (Date) data.get("sowing_date");
         farmfield.setSowingDate(sqlDate.toLocalDate());
         try {
@@ -280,6 +281,31 @@ public class PeltodataRepositoryImpl implements PeltodataRepository {
         try (final SqlSession session = factory.openSession()) {
             final FarmfieldFileMapper mapper = session.getMapper(FarmfieldFileMapper.class);
             mapper.udpateFarmfieldFile(file);
+            session.commit();
+        }
+    }
+
+    @Override
+    public void insertFarmFieldLayer(Long farmfieldId, int oskariLayerId) {
+        try (final SqlSession session = factory.openSession()) {
+            final FarmfieldMapper mapper = session.getMapper(FarmfieldMapper.class);
+            mapper.insertFarmFieldMapLayer(farmfieldId, oskariLayerId);
+            session.commit();
+        }
+    }
+
+    @Override
+    public void deleteFarmfieldFilesForField(long farmfieldId) {
+        try (SqlSession session = factory.openSession()) {
+            final FarmfieldExecutionMapper executionMapper = session.getMapper(FarmfieldExecutionMapper.class);
+            List<FarmfieldExecution> executions = executionMapper.findAllFarmFieldExecutionsForFarm(farmfieldId);
+            executions.stream().map(FarmfieldExecution::getId).forEach(executionMapper::deleteFarmfieldExecution);
+
+            final FarmfieldFileMapper fileMapper = session.getMapper(FarmfieldFileMapper.class);
+            List<FarmfieldFile> files = fileMapper.findFarmfieldFileForFarm(farmfieldId);
+            files.stream().map(FarmfieldFile::getId).forEach(fileMapper::deleteFarmfieldFile);
+
+
             session.commit();
         }
     }

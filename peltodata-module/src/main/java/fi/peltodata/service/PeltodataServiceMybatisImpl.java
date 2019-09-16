@@ -140,7 +140,11 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         ensureDataProviderForUser(user);
 
         // create group / a.k.a. theme always when new farm is created
-        ensureGroupForField(farmfield);
+        MaplayerGroup group = ensureGroupForField(farmfield);
+        if (farmfield.getMapLayerGroupId() == null || group.getId() != farmfield.getMapLayerGroupId()) {
+            farmfield.setMapLayerGroupId(group.getId());
+            peltodataRepository.updateFarmfield(farmfield);
+        }
         return farmfieldId;
     }
 
@@ -179,13 +183,22 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
     }
 
     @Override
-    public void deleteFarmfield(long id) {
-        peltodataRepository.deleteFarmfield(id);
+    public void deleteFarmfield(long farmfieldId) {
+        Farmfield farmfield = peltodataRepository.findFarmfield(farmfieldId);
+        this.deleteFarmfield(farmfield);
     }
 
     @Override
     public void deleteFarmfield(Farmfield farmfield) {
-        deleteFarmfield(farmfield.getId());
+        if (farmfield == null || farmfield.getId() == null) {
+            throw new IllegalArgumentException("farmfield or farmfieldid is null");
+        }
+        if (farmfield.getMapLayerGroupId() != null) {
+            oskariMapLayerGroupService.delete(farmfield.getMapLayerGroupId());
+        }
+        farmfield.getLayers().stream().map(OskariLayer::getId).forEach(oskariLayerService::delete);
+        peltodataRepository.deleteFarmfieldFilesForField(farmfield.getId());
+        peltodataRepository.deleteFarmfield(farmfield.getId());
     }
 
     @Override
@@ -374,8 +387,9 @@ public class PeltodataServiceMybatisImpl extends OskariComponent implements Pelt
         try {
             User adminUser = userService.getUser("admin");
             // Set layer description to "12.09.2019 - <TYPE>"
-            String layerDescription = String.format("%s - %s", new SimpleDateFormat("dd.MM.YYYY").format(farmfieldFile.getFileDate()), convertTypeToFinnishDescription(dataType));
-            peltodataOskariLayerService.addWMSLayerFromGeoserver(layerDescription, maplayerGroup.getId(), dataProvider.getId(), layerName, geoserverClient.getWMSBaseUrl(), adminUser);
+            String layerDescription = String.format("%s - %s", farmfieldFile.getFileDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")), convertTypeToFinnishDescription(dataType));
+            OskariLayer oskariLayer = peltodataOskariLayerService.addWMSLayerFromGeoserver(layerDescription, maplayerGroup.getId(), dataProvider.getId(), layerName, geoserverClient.getWMSBaseUrl(), adminUser);
+            peltodataRepository.insertFarmFieldLayer(farmfield.getId(), oskariLayer.getId());
         } catch (ServiceException e) {
             throw new RuntimeException(e);
         }
