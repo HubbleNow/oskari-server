@@ -1,0 +1,12 @@
+{
+  "crop_type": "oat",
+  "description": "Big field #1",
+  "farm_id": "field-1231-12312313",
+  "file_date": "2019-09-10",
+  "input_type", "crop_estimation_raw",
+  "output_type", "crop_estimation",
+  "id": 3,
+  "input_file": "/opt/jetty-distribution-9.4.12.v20180830/geoserver_data/farms/3/2019/20190913122849__crop_estimation_raw.tiff",
+  "output_file": "/opt/jetty-distribution-9.4.12.v20180830/geoserver_data/farms/3/2019/20190913122849__crop_estimation.tiff",
+  "sowing_date": "2019-09-11"
+}

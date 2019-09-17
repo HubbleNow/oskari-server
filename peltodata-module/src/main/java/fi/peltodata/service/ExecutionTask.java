@@ -77,4 +77,8 @@ public abstract class ExecutionTask implements Runnable {
     public FarmfieldFile getFarmfieldFile() {
         return farmfieldFile;
     }
+
+    public FarmfieldFileDataType getOutputType() {
+        return outputType;
+    }
 }

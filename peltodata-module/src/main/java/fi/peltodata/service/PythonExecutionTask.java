@@ -67,7 +67,7 @@ public class PythonExecutionTask extends ExecutionTask {
             throw new RuntimeException("File missing " + pythonFile);
         }
 
-        String jsonFile = generateJsonFile(getFarmfield(), getFarmfieldFile());
+        String jsonFile = generateJsonFile(getFarmfield(), getFarmfieldFile(), getOutputType());
 
         String[] commandParts = new String[] { "python", pythonFile, jsonFile };
         LOG.info("Trying to execute python script {}, {}", new Object[]{pythonFile, jsonFile});
@@ -89,7 +89,7 @@ public class PythonExecutionTask extends ExecutionTask {
         }
     }
 
-    private String generateJsonFile(Farmfield farmfield, FarmfieldFile farmfieldFile) throws IOException {
+    private String generateJsonFile(Farmfield farmfield, FarmfieldFile farmfieldFile, FarmfieldFileDataType outputType) throws IOException {
         Map<String, Object> jsonData = new HashMap<>();
         jsonData.put("id", farmfield.getId());
         jsonData.put("farm_id", farmfield.getFarmId());
@@ -99,6 +99,8 @@ public class PythonExecutionTask extends ExecutionTask {
         jsonData.put("input_file", farmfieldFile.getFullPath());
         jsonData.put("output_file", getOutputFilePath().toString());
         jsonData.put("file_date", farmfieldFile.getFileDate());
+        jsonData.put("input_type", farmfieldFile.getType());
+        jsonData.put("output_type", outputType.getTypeId());
 
         Path jsonFile = Paths.get(jsonFolder, farmfieldFile.getId() + "_" + new Date().getTime() + ".json");
         Files.createDirectories(jsonFile.getParent());
