@@ -1,0 +1,14 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Copy oskari service
+      copy: 
+        src: oskari.service
+        dest: /etc/systemd/system/oskari.service
+        mode: 0755
+    - name: Enable and start service
+      systemd:
+        name: oskari
+        enabled: true
+        state: started

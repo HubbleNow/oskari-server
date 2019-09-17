@@ -1,0 +1,53 @@
+---
+- hosts: all
+  become: yes
+  become_user: oskari
+  tasks:
+    - name: Pull oskari server
+      git:
+        repo: "https://github.com/HubbleNow/oskari-server.git"
+        dest: /home/oskari/oskari-server-git
+    - name: Pull oskari frontend
+      git:
+        repo: "https://github.com/HubbleNow/oskari-frontend.git"
+        dest: /home/oskari/oskari-frontend-git
+    - name: run npm install
+      command: npm install
+      args:
+        chdir: /home/oskari/oskari-frontend-git
+    - name: build dist package
+      command: npm run build
+      args:
+        chdir: /home/oskari/oskari-frontend-git
+    - name: build server
+      command: "mvn clean install package -Dmaven.test.skip=true"
+      args:
+        chdir: /home/oskari/oskari-server-git
+    - name: stop oskari service
+      systemd:
+        name: oskari
+        state: stopped
+    - name: delete frontend dist
+      file:
+        path: /home/oskari/jetty-distribution-9.4.12.v20180830/peltodata/dist
+        state: absent
+    - name: Create a directory if it does not exist
+      file:
+        path: /home/oskari/jetty-distribution-9.4.12.v20180830/peltodata/dist
+        state: directory
+        mode: '0755'
+    - name: copy new dist
+      copy:
+        remote_src: yes
+        directory_mode: true
+        src: /home/oskari/peltodata-frontend-git/dist/
+        dest: /home/oskari/jetty-distribution-9.4.12.v20180830/peltodata/dist/
+    - name: copy new war
+      copy:
+        remote_src: yes
+        src: /home/oskari/peltodata-server-git/webapp-map/target/oskari-map.war
+        dest: /home/oskari/jetty-distribution-9.4.12.v20180830/webapps
+    - name: start
+      systemd:
+        name: oskari
+        state: started

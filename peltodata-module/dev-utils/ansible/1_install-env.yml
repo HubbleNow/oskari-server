@@ -1,0 +1,93 @@
+---
+- hosts: all
+  become: yes
+  vars:
+    nvm_node_version: "10.16.3"
+  roles:
+    - role: grzegorznowak.nvm_node
+  tasks:
+    - name: Install prerequisites
+      block:
+      - name: Install
+        yum:
+          name: "{{ packages }}"
+        vars:
+          packages:
+          - git
+          - java-1.8.0-openjdk
+          - maven
+          - unzip
+          - postgresql
+          - postgresql-server
+          - python-psycopg2
+          - postgresql-contrib
+          - nano
+          - nginx
+          - epel-release
+          - gdal
+          - postgis
+      - name: Create oskari group
+        group:
+          name: oskari
+      - name: Create oskari user
+        user:
+          name: oskari
+          group: oskari
+
+    - name: Create database things
+      block:
+      - name: Check for pgdata directory
+        stat:
+          path: "/var/lib/pgsql/data/base"
+        register: pgdata_stat
+        failed_when: false
+      - name: Execute postgresql-setup
+        shell: postgresql-setup initdb
+        when: (pgdata_stat.stat.isdir is not defined or not pgdata_stat.stat.isdir)
+        become: yes
+      - name: Configure pg_hba.conf to allow connections from java
+        postgresql_pg_hba:
+          dest: /var/lib/pgsql/data/pg_hba.conf
+          contype: host
+          users: all
+          source: 127.0.0.1/32
+          databases: all
+          method: md5
+          state: present
+      - name: Configure pg_hba.conf to allow connections from java
+        postgresql_pg_hba:
+          dest: /var/lib/pgsql/data/pg_hba.conf
+          contype: host
+          users: all
+          source: ::1/128
+          databases: all
+          method: md5
+          state: present
+      # jostain syystä pitää ajaa käsin sudo systemctl enable postgresql
+      # - name: Execute postgresql-setup
+      #   shell: systemctl enable postgresql
+      #   become: yes
+      # - name: Execute postgresql-setup
+      #   shell: systemctl start postgresql
+      #   become: yes
+      - name: Create a new database with name "oskaridb"
+        postgresql_db:
+          name: oskaridb
+          encoding: UTF-8
+          template: template0
+      - name: Create new user 'oskari'
+        postgresql_user:
+          name: oskari
+          password: oskari
+      - name: Add privileges to user 'oskari'
+        postgresql_privs:
+          db: oskaridb
+          role: oskari
+          objs: ALL_IN_SCHEMA
+          privs: SELECT,INSERT,UPDATE,DELETE
+      - name: Adds postgis extension to the database oskaridb
+        postgresql_ext:
+          name: postgis
+          db: oskaridb
+      become: true
+      become_user: postgres

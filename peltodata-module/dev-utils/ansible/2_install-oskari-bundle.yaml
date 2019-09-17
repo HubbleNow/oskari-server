@@ -1,0 +1,28 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Install oskari bundle and clean it up
+      block:
+      - name: Download jetty bundle
+        get_url: 
+          url: https://oskari.org/build/server/jetty-9.4.12-oskari.zip
+          dest: /home/oskari/jetty.zip
+      - name: unzip jetty
+        unarchive:            
+          remote_src: yes
+          src: /home/oskari/jetty.zip
+          dest: /home/oskari
+      - name: copy oskarifolder to jetty folder
+        copy:
+          remote_src: yes
+          directory_mode: yes
+          src: /home/oskari/oskari-server/
+          dest: /home/oskari/jetty-distribution-9.4.12.v20180830/
+      - name: copy geoserver setup war to to jetty webapps
+        copy:
+          remote_src: yes
+          src: /home/oskari/jetty-distribution-9.4.12.v20180830/setup.war
+          dest: /home/oskari/jetty-distribution-9.4.12.v20180830/webapps/setup.war
+      become: yes
+      become_user: oskari

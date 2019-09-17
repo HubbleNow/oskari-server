@@ -1,0 +1,57 @@
+---
+- include: setup-Redhat.yml
+  when: ansible_os_family == "RedHat"
+
+- include: setup-Debian.yml
+  when: ansible_os_family == "Debian"
+
+  # make it so that anyone can use it!
+- name: Create the target VNM dir
+  file: path="{{ nvm_dir }}" state=directory owner="{{ nvm_user_name }}" mode="o+rwx"
+
+  # variablize the name of the installation script so it fire handlers properly when
+  # updating from version to version
+- name: Copy over nvm installation script
+  template: src="install_nvm.script.j2" dest="{{ nvm_dir }}/install_nvm_{{ nvm_node_version }}.script"
+            mode="u+x,g+x" owner="{{ nvm_user_name }}"
+  notify:
+    - Execute the nvm installation script
+    - Install new global packages
+
+- name: We love hanlers
+  meta: flush_handlers
+
+- name: Add the NVM's variables to all the profiles in the system (Debian)
+  blockinfile: |
+    dest=/etc/bash.bashrc backup=no
+    insertbefore="# If not running interactively"
+    content="cd ~
+             export NVM_DIR=\"{{ nvm_dir }}\"
+             [ -s \"$NVM_DIR/nvm.sh\" ] && \. \"$NVM_DIR/nvm.sh\"
+             [ -s \"$NVM_DIR/bash_completion\" ] && \. \"$NVM_DIR/bash_completion\""
+  when: ansible_os_family == "Debian"
+
+- name: Add the NVM's variables to all the profiles in the system (RedHat)
+  blockinfile: |
+    dest=/etc/bashrc backup=no
+    content="cd ~
+             export NVM_DIR=\"{{ nvm_dir }}\"
+             [ -s \"$NVM_DIR/nvm.sh\" ] && \. \"$NVM_DIR/nvm.sh\"
+             [ -s \"$NVM_DIR/bash_completion\" ] && \. \"$NVM_DIR/bash_completion\""
+  when: ansible_os_family == "RedHat"
+
+- name: Make the node binary always discoverable by symlinking to a system bin PATH that cron sees by default too
+  file: src="{{ nvm_dir }}/versions/node/v{{ nvm_node_version }}/bin/node"
+        dest="/usr/bin/node" state=link mode="u+rwx,g+rx,o+rx"
+
+- name: Make the npm binary always discoverable by symlinking to a system bin PATH that cron sees by default too
+  file: src="{{ nvm_dir }}/versions/node/v{{ nvm_node_version }}/bin/npm"
+        dest="/usr/bin/npm" state=link mode="u+rwx,g+rx,o+rx"
+
+- name: We love hanlers
+  meta: flush_handlers
+
+- name: Symlink global packages into PATH for specific environments (like cron's) to be able to access them.
+  file: src="{{ nvm_dir }}/versions/node/v{{ nvm_node_version }}/bin/{{ item }}"
+        dest="/usr/bin/{{ item }}" state=link mode="u+rwx,g+rx,o+rx"
+  loop: "{{ nvm_install_globally }}"
