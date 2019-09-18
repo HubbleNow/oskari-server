@@ -2,8 +2,12 @@
 
 ## Required configuration changes
 
-### 1. jetty-distribution-xxxx/resources/oskari-ext.properties
+### 1. oskari-server/resources/oskari-ext.properties
 
+- Configure the "version" path for peltodata frontend files
+  - this has to correspond with /peltodata/dist/<version>/ which is also specified in package.json (now devapp)
+  - Modify row
+    - `oskari.client.version=dist/devapp`
 - Activate the bundle
   - Done so that `my fields` is activated and shown in the Ui for logged in user with role `User`
   - Add peltodata to row below
@@ -11,15 +15,20 @@
   - Add row
     - `actionhandler.GetAppSetup.dynamic.bundle.peltodata.roles = User`
 
+- configure correct geoserver url 
+  - This url has to be accessible from outside because clients will access the layers from there
+    - `geoserver.url=https://xxx/geoserver`
+
 - Activate peltodata backend module
   - If not modified, the database migrations wont be run and there will be errors
+  - also remove `myapp` from this list
   - Modify row
-    - `db.additional.modules=myplaces, userlayer, example, peltodata`
+    - `db.additional.modules=myplaces, userlayer, peltodata`
 
 - Configure path for uploaded files
   - Configures where NEW files are stored, existing files do not care about this setting (path saved in db)
   - Optional
-    - if not configured, it is under `jetty-dist.../geoserver_data`
+    - if not configured, it is under `oskari-server/geoserver_data`
   - `peltodata.upload.root.dir`
   - Under this folder, a folder structure will be made, for example:
     - ```
@@ -37,7 +46,7 @@
   - scripts will be called as `python <SCRIPT> 123123123123_CROP_ESTIMATION.json`
     - json file format can be found in `example_json.json` 
 
-### 2. jetty-distribution-xxxx/webapps/oskari-front.properties
+### 2. oskari-server/webapps/oskari-front.properties
 - Change the folder where frontend package can be found.
   - change
     - `<Set name="resourceBase"><SystemProperty name="jetty.base" default="."/>/peltodata</Set>`
@@ -46,3 +55,26 @@
 - allow big file uploads
 - can be put in `http`, `server` or `location` block. Best probably server 
   - `client_max_body_size 2G;`
+
+### 4. jetty/start.d/console-capture.ini
+- Enable logging for jetty. after this, logfiles are in logs folder 
+```
+# ---------------------------------------
+# Module: console-capture
+# Redirects JVMs console stderr and stdout to a log file,
+# including output from Jetty's default StdErrLog logging.
+# ---------------------------------------
+--module=console-capture
+
+## Logging directory (relative to $jetty.base)
+# jetty.console-capture.dir=logs
+
+## Whether to append to existing file
+# jetty.console-capture.append=true
+
+## How many days to retain old log files
+jetty.console-capture.retainDays=10
+
+## Timezone of the log timestamps
+# jetty.console-capture.timezone=GMT
+```
